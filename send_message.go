@@ -13,7 +13,7 @@ func SendMessage(my_client *client.Client, chatId int64, msg string) {
 		},
 	}
 
-	response, err := my_client.SendMessage(context.Background(), &client.SendMessageRequest{
+	_, err := my_client.SendMessage(context.Background(), &client.SendMessageRequest{
 		ChatId:              chatId,
 		InputMessageContent: messageContent,
 	})
@@ -21,5 +21,5 @@ func SendMessage(my_client *client.Client, chatId int64, msg string) {
 		log.Printf("Failed to send message: %v", err)
 		return
 	}
-	log.Println(response.Id)
+	log.Println("Message sent")
 }

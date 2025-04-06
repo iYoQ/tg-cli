@@ -11,7 +11,7 @@ import (
 
 func HandleShutDown(my_client *client.Client) {
 	ch := make(chan os.Signal, 2)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
 	<-ch
 	log.Println("\nShutting down TDLib client...")
 
