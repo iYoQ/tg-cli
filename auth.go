@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"path/filepath"
 	"strconv"
 	"tg-cli/handlers"
@@ -11,12 +10,7 @@ import (
 	"github.com/zelenin/go-tdlib/client"
 )
 
-func Auth() *client.Client {
-	var (
-		apiIdRaw = os.Getenv("API_ID")
-		apiHash  = os.Getenv("API_HASH")
-	)
-
+func Auth(apiIdRaw string, apiHash string) *client.Client {
 	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
 	if err != nil {
 		log.Fatalf("strconv.Atoi error: %s", err)

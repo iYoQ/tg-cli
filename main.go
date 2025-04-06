@@ -1,17 +1,35 @@
 package main
 
 import (
-	"github.com/joho/godotenv"
+	"flag"
 	"log"
+	"os"
+	manual "tg-cli/manualmanager"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Not found .env file")
+	_ = godotenv.Load()
+
+	apiIdFlag := flag.String("id", "", "api id")
+	apiHashFlag := flag.String("hash", "", "api hash")
+
+	apiId := *apiIdFlag
+	if apiId == "" {
+		apiId = os.Getenv("API_ID")
 	}
 
-	my_client := Auth()
+	apiHash := *apiHashFlag
+	if apiHash == "" {
+		apiHash = os.Getenv("API_HASH")
+	}
 
-	ManualManager(my_client)
+	if apiId == "" || apiHash == "" {
+		log.Fatal("API_ID and API_HASH are required, user --id=, --hash= flags or ENV")
+	}
+
+	my_client := Auth(apiId, apiHash)
+
+	manual.Start(my_client)
 }
