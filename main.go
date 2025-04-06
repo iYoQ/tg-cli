@@ -13,6 +13,5 @@ func main() {
 
 	my_client := Auth()
 
-	MainLoop(my_client)
-
+	ManualManager(my_client)
 }

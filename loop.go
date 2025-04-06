@@ -8,9 +8,10 @@ import (
 	"strings"
 
 	"github.com/zelenin/go-tdlib/client"
+	"tg-cli/sender"
 )
 
-func MainLoop(my_client *client.Client) {
+func ManualManager(my_client *client.Client) {
 	for {
 		fmt.Println("\nChoose an option:")
 		fmt.Println("1. send msg")
@@ -48,9 +49,9 @@ func MainLoop(my_client *client.Client) {
 
 			photoPath := strings.Split(msg, "=")
 			if photoPath[0] == "ph" {
-				SendPhoto(my_client, chatId, strings.Join(photoPath[1:], "="))
+				sender.SendPhoto(my_client, chatId, strings.Join(photoPath[1:], "="))
 			} else {
-				SendMessage(my_client, chatId, msg)
+				sender.SendText(my_client, chatId, msg)
 			}
 
 		case 2:
