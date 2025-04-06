@@ -26,7 +26,7 @@ func main() {
 	}
 
 	if apiId == "" || apiHash == "" {
-		log.Fatal("API_ID and API_HASH are required, user --id=, --hash= flags or ENV")
+		log.Fatal("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
 	}
 
 	my_client := Auth(apiId, apiHash)

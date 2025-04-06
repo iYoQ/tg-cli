@@ -14,8 +14,14 @@ import (
 	"github.com/zelenin/go-tdlib/client"
 )
 
+const NUMBER_OF_CHATS = 5
+
 func Start(my_client *client.Client) {
 	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Printf("\n%d recently open chats:\n", NUMBER_OF_CHATS)
+	fmt.Println("-----------------------------------------------------------")
+	info.GetChats(my_client, NUMBER_OF_CHATS)
 
 	for {
 		fmt.Println("\nChoose an option:")

@@ -21,6 +21,8 @@ func GetChats(my_client *client.Client, size int32) {
 			log.Printf("smh wrong with chat %d, error %s", id, err)
 			continue
 		}
+
 		fmt.Printf("name: %s, id: %d\n", chat.Title, chat.Id)
+		fmt.Println("-----------------------------------------------------------")
 	}
 }
