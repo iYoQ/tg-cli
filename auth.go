@@ -6,11 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"tg-cli/handlers"
 
 	"github.com/zelenin/go-tdlib/client"
 )
 
-func Auth() client.Client {
+func Auth() *client.Client {
 	var (
 		apiIdRaw = os.Getenv("API_ID")
 		apiHash  = os.Getenv("API_HASH")
@@ -54,6 +55,8 @@ func Auth() client.Client {
 		log.Fatalf("NewClient error: %s", err)
 	}
 
+	go handlers.HandleShutDown(tdlibClient)
+
 	versionOption, err := client.GetOption(&client.GetOptionRequest{
 		Name: "version",
 	})
@@ -81,14 +84,5 @@ func Auth() client.Client {
 
 	log.Printf("Me: %s %s", me.FirstName, me.LastName)
 
-	// resHandCallback := func(result client.Type) {
-	// 	log.Printf("%#v", result.GetType())
-	// }
-
-	// tdlibClient, err := client.NewClient(authorizer, client.WithResultHandler(client.NewCallbackResultHandler(resHandCallback)))
-	// if err != nil {
-	//     log.Fatalf("NewClient error: %s", err)
-	// }
-
-	return *tdlibClient
+	return tdlibClient
 }

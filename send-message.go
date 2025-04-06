@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func SendMessage(my_client client.Client, chatId int64, msg string) {
+func SendMessage(my_client *client.Client, chatId int64, msg string) {
 	messageContent := &client.InputMessageText{
 		Text: &client.FormattedText{
 			Text: msg,
@@ -18,7 +18,8 @@ func SendMessage(my_client client.Client, chatId int64, msg string) {
 		InputMessageContent: messageContent,
 	})
 	if err != nil {
-		log.Fatalf("Failed to send message: %v", err)
+		log.Printf("Failed to send message: %v", err)
+		return
 	}
 	log.Println(response.Id)
 }
