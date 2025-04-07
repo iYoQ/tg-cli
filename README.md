@@ -4,9 +4,9 @@ Telegram client for interaction in cli
 ## dev start
 - Build `tdlib`. Example for debian base os
 
-		sudo apt-get update
-		sudo apt-get upgrade
-		sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake g++
+		sudo apt update
+		sudo apt upgrade
+		sudo apt install make git zlib1g-dev libssl-dev gperf php-cli cmake g++
 		git clone https://github.com/tdlib/td.git
 		cd td
 		rm -rf build
