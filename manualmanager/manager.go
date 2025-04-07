@@ -7,9 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"tg-cli/exchange"
 	"tg-cli/handlers"
-	"tg-cli/info"
-	"tg-cli/sender"
 
 	"github.com/zelenin/go-tdlib/client"
 )
@@ -21,12 +20,13 @@ func Start(my_client *client.Client) {
 
 	fmt.Printf("\n%d recently open chats:\n", NUMBER_OF_CHATS)
 	fmt.Println("-----------------------------------------------------------")
-	info.GetChats(my_client, NUMBER_OF_CHATS)
+	exchange.GetChats(my_client, NUMBER_OF_CHATS)
 
 	for {
 		fmt.Println("\nChoose an option:")
 		fmt.Println("1. send msg")
 		fmt.Println("2. get chat list")
+		fmt.Println("3. open chat")
 		fmt.Println("9. exit")
 
 		input, err := readInput(reader)
@@ -46,6 +46,8 @@ func Start(my_client *client.Client) {
 			createMessage(my_client, reader)
 		case 2:
 			getChatList(my_client, reader)
+		case 3:
+			openChat(my_client, reader)
 		case 9:
 			handlers.Shutdown(my_client)
 		default:
@@ -79,9 +81,9 @@ func createMessage(my_client *client.Client, reader *bufio.Reader) {
 
 	attPath := strings.Split(msg, "=")
 	if attPath[0] == "ph" {
-		sender.SendPhoto(my_client, chatId, strings.Join(attPath[1:], "="))
+		exchange.SendPhoto(my_client, chatId, strings.Join(attPath[1:], "="))
 	} else {
-		sender.SendText(my_client, chatId, msg)
+		exchange.SendText(my_client, chatId, msg)
 	}
 }
 
@@ -102,7 +104,25 @@ func getChatList(my_client *client.Client, reader *bufio.Reader) {
 
 	size32 := int32(size64)
 
-	info.GetChats(my_client, size32)
+	exchange.GetChats(my_client, size32)
+}
+
+func openChat(my_client *client.Client, reader *bufio.Reader) {
+	fmt.Println("\nEnter chat id:")
+
+	input, err := readInput(reader)
+	if err != nil {
+		fmt.Println("Failed to read input")
+		return
+	}
+
+	chatId, err := strconv.ParseInt(input, 10, 64)
+	if err != nil {
+		fmt.Println("Invalid id, enter a number")
+		return
+	}
+
+	exchange.GetMessages(my_client, chatId)
 }
 
 func readInput(reader *bufio.Reader) (string, error) {
