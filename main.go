@@ -11,7 +11,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func Init(apiId string, apiHash string) error {
+func Init() error {
+	apiId, apiHash := loadParams()
+
 	client, err := Auth(apiId, apiHash)
 	if err != nil {
 		if client != nil {
@@ -34,7 +36,7 @@ func Init(apiId string, apiHash string) error {
 	return nil
 }
 
-func main() {
+func loadParams() (string, string) {
 	_ = godotenv.Load()
 
 	apiIdFlag := flag.String("id", "", "api id")
@@ -51,10 +53,14 @@ func main() {
 	}
 
 	if apiId == "" || apiHash == "" {
-		log.Fatal("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
+		log.Printf("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
 	}
 
-	if err := Init(apiId, apiHash); err != nil {
+	return apiId, apiHash
+}
+
+func main() {
+	if err := Init(); err != nil {
 		log.Fatalf("Initialization failed: %s", err)
 	}
 }
