@@ -5,21 +5,21 @@ import (
 	"log"
 	"os"
 
-	"github.com/zelenin/go-tdlib/client"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func SendText(my_client *client.Client, chatId int64, msg string) {
-	messageContent := &client.InputMessageText{
-		Text: &client.FormattedText{
+func SendText(client *tdlib.Client, chatId int64, msg string) {
+	messageContent := &tdlib.InputMessageText{
+		Text: &tdlib.FormattedText{
 			Text: msg,
 		},
 	}
 
 	messageRequest := buildRequest(chatId, messageContent)
-	sendMessage(my_client, messageRequest)
+	sendMessage(client, messageRequest)
 }
 
-func SendPhoto(my_client *client.Client, chatId int64, photoPath string) {
+func SendPhoto(client *tdlib.Client, chatId int64, photoPath string, text string) {
 	if _, err := os.Stat(photoPath); os.IsNotExist(err) {
 		log.Printf("File does not exist: %s", photoPath)
 		return
@@ -28,25 +28,28 @@ func SendPhoto(my_client *client.Client, chatId int64, photoPath string) {
 		return
 	}
 
-	messageContent := &client.InputMessagePhoto{
-		Photo: &client.InputFileLocal{
+	messageContent := &tdlib.InputMessagePhoto{
+		Photo: &tdlib.InputFileLocal{
 			Path: photoPath,
+		},
+		Caption: &tdlib.FormattedText{
+			Text: text,
 		},
 	}
 
 	messageRequest := buildRequest(chatId, messageContent)
-	sendMessage(my_client, messageRequest)
+	sendMessage(client, messageRequest)
 }
 
-func buildRequest(chatId int64, content client.InputMessageContent) *client.SendMessageRequest {
-	return &client.SendMessageRequest{
+func buildRequest(chatId int64, content tdlib.InputMessageContent) *tdlib.SendMessageRequest {
+	return &tdlib.SendMessageRequest{
 		ChatId:              chatId,
 		InputMessageContent: content,
 	}
 }
 
-func sendMessage(my_client *client.Client, messageRequest *client.SendMessageRequest) {
-	_, err := my_client.SendMessage(context.Background(), messageRequest)
+func sendMessage(client *tdlib.Client, messageRequest *tdlib.SendMessageRequest) {
+	_, err := client.SendMessage(context.Background(), messageRequest)
 	if err != nil {
 		log.Printf("Failed to send message: %v", err)
 		return

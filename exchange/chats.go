@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zelenin/go-tdlib/client"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func GetChats(my_client *client.Client, size int32) {
-	chats, err := my_client.GetChats(context.Background(), &client.GetChatsRequest{Limit: size})
+func GetChats(client *tdlib.Client, size int32) {
+	chats, err := client.GetChats(context.Background(), &tdlib.GetChatsRequest{Limit: size})
 	if err != nil {
-		log.Println("smh wrong with chats")
+		log.Printf("Failed GetChats: %s", err)
 		return
 	}
 
 	for _, id := range chats.ChatIds {
-		chat, err := my_client.GetChat(context.Background(), &client.GetChatRequest{ChatId: id})
+		chat, err := client.GetChat(context.Background(), &tdlib.GetChatRequest{ChatId: id})
 		if err != nil {
-			log.Printf("smh wrong with chat %d, error %s", id, err)
+			log.Printf("Failder get chat %d, error %s", id, err)
 			continue
 		}
 
@@ -28,32 +28,32 @@ func GetChats(my_client *client.Client, size int32) {
 }
 
 // Переработать этот пиздец, добавить идентификатор того кто отправлял сообщение
-func GetMessages(my_client *client.Client, chatId int64) {
-	_, err := my_client.OpenChat(context.Background(), &client.OpenChatRequest{ChatId: chatId})
+func GetMessages(client *tdlib.Client, chatId int64) {
+	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
-		log.Printf("Cannot open chat, %s", err)
+		log.Printf("Failed open chat %d, error: %s", chatId, err)
 		return
 	}
 
-	messages, err := my_client.GetChatHistory(context.Background(), &client.GetChatHistoryRequest{
+	messages, err := client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
 		ChatId:        chatId,
 		FromMessageId: 0,
 		Offset:        0,
 		Limit:         1,
 	})
 	if err != nil {
-		log.Printf("Cannot receive messages, %s", err)
+		log.Printf("Cannot receive last message, error: %s", err)
 		return
 	}
 
-	moreMsg, err := my_client.GetChatHistory(context.Background(), &client.GetChatHistoryRequest{
+	moreMsg, err := client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
 		ChatId:        chatId,
 		FromMessageId: messages.Messages[0].Id,
-		Offset:        -1,
+		Offset:        0,
 		Limit:         10,
 	})
 	if err != nil {
-		log.Printf("Cannot receive messages, %s", err)
+		log.Printf("Cannot receive messages, error: %s", err)
 		return
 	}
 
@@ -63,7 +63,7 @@ func GetMessages(my_client *client.Client, chatId int64) {
 
 	for _, message := range moreMsg.Messages {
 		switch content := message.Content.(type) {
-		case *client.MessageText:
+		case *tdlib.MessageText:
 			fmt.Println(content.Text.Text)
 			fmt.Println("-----------------------------------------------------------")
 		}

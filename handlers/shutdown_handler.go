@@ -2,33 +2,36 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/zelenin/go-tdlib/client"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func HandleShutDown(my_client *client.Client) {
+func HandleShutDown(client *tdlib.Client) {
 	ch := make(chan os.Signal, 2)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
 	<-ch
 
-	Shutdown(my_client)
+	ShutDown(client)
+	os.Exit(0)
 }
 
-func Shutdown(my_client *client.Client) {
+func ShutDown(client *tdlib.Client) *tdlib.Ok {
 	log.Println("\nShutting down TDLib client...")
 
-	ok, err := my_client.Close(context.Background())
+	ok, err := client.Close(context.Background())
 	if err != nil {
 		log.Printf("Error closing TDLib client: %v\n", err)
 		os.Exit(1)
 	}
 	if ok != nil {
 		log.Println("TDLib client closed")
+		return ok
 	}
 
-	os.Exit(0)
+	panic(errors.New("smh very bad happened"))
 }

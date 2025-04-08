@@ -1,4 +1,4 @@
-package manualmanager
+package console
 
 import (
 	"bufio"
@@ -8,19 +8,18 @@ import (
 	"strings"
 
 	"tg-cli/exchange"
-	"tg-cli/handlers"
 
-	"github.com/zelenin/go-tdlib/client"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 const NUMBER_OF_CHATS = 5
 
-func Start(my_client *client.Client) {
+func Start(client *tdlib.Client) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Printf("\n%d recently open chats:\n", NUMBER_OF_CHATS)
 	fmt.Println("-----------------------------------------------------------")
-	exchange.GetChats(my_client, NUMBER_OF_CHATS)
+	exchange.GetChats(client, NUMBER_OF_CHATS)
 
 	for {
 		fmt.Println("\nChoose an option:")
@@ -43,20 +42,20 @@ func Start(my_client *client.Client) {
 
 		switch choice {
 		case 1:
-			createMessage(my_client, reader)
+			createMessage(client, reader)
 		case 2:
-			getChatList(my_client, reader)
+			getChatList(client, reader)
 		case 3:
-			openChat(my_client, reader)
+			openChat(client, reader)
 		case 9:
-			handlers.Shutdown(my_client)
+			return
 		default:
 			fmt.Println("invalid")
 		}
 	}
 }
 
-func createMessage(my_client *client.Client, reader *bufio.Reader) {
+func createMessage(client *tdlib.Client, reader *bufio.Reader) {
 	fmt.Println("\nEnter chat id:")
 
 	input, err := readInput(reader)
@@ -79,15 +78,17 @@ func createMessage(my_client *client.Client, reader *bufio.Reader) {
 		return
 	}
 
-	attPath := strings.Split(msg, "=")
-	if attPath[0] == "ph" {
-		exchange.SendPhoto(my_client, chatId, strings.Join(attPath[1:], "="))
+	msgSplit := strings.Split(msg, " ")
+	if msgSplit[0] == "/ph" {
+		photoPath := msgSplit[1]
+		text := strings.Join(msgSplit[2:], " ")
+		exchange.SendPhoto(client, chatId, photoPath, text)
 	} else {
-		exchange.SendText(my_client, chatId, msg)
+		exchange.SendText(client, chatId, msg)
 	}
 }
 
-func getChatList(my_client *client.Client, reader *bufio.Reader) {
+func getChatList(client *tdlib.Client, reader *bufio.Reader) {
 	fmt.Println("\nChoose a number of chats:")
 
 	input, err := readInput(reader)
@@ -104,10 +105,10 @@ func getChatList(my_client *client.Client, reader *bufio.Reader) {
 
 	size32 := int32(size64)
 
-	exchange.GetChats(my_client, size32)
+	exchange.GetChats(client, size32)
 }
 
-func openChat(my_client *client.Client, reader *bufio.Reader) {
+func openChat(client *tdlib.Client, reader *bufio.Reader) {
 	fmt.Println("\nEnter chat id:")
 
 	input, err := readInput(reader)
@@ -122,7 +123,7 @@ func openChat(my_client *client.Client, reader *bufio.Reader) {
 		return
 	}
 
-	exchange.GetMessages(my_client, chatId)
+	exchange.GetMessages(client, chatId)
 }
 
 func readInput(reader *bufio.Reader) (string, error) {

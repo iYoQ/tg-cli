@@ -4,10 +4,35 @@ import (
 	"flag"
 	"log"
 	"os"
-	manual "tg-cli/manualmanager"
+	"runtime/debug"
+	"tg-cli/console"
+	"tg-cli/handlers"
 
 	"github.com/joho/godotenv"
 )
+
+func Init(apiId string, apiHash string) error {
+	client, err := Auth(apiId, apiHash)
+	if err != nil {
+		if client != nil {
+			handlers.ShutDown(client)
+		}
+		return err
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("panic recovered: %v\n%s", r, debug.Stack())
+		}
+
+		if client != nil {
+			handlers.ShutDown(client)
+		}
+	}()
+
+	console.Start(client)
+	return nil
+}
 
 func main() {
 	_ = godotenv.Load()
@@ -29,7 +54,7 @@ func main() {
 		log.Fatal("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
 	}
 
-	my_client := Auth(apiId, apiHash)
-
-	manual.Start(my_client)
+	if err := Init(apiId, apiHash); err != nil {
+		log.Fatalf("Initialization failed: %s", err)
+	}
 }

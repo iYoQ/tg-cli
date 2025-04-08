@@ -7,18 +7,19 @@ import (
 	"strconv"
 	"tg-cli/handlers"
 
-	"github.com/zelenin/go-tdlib/client"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(apiIdRaw string, apiHash string) *client.Client {
+func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
 	if err != nil {
-		log.Fatalf("strconv.Atoi error: %s", err)
+		log.Printf("strconv.Atoi error: %s", err)
+		return nil, err
 	}
 
 	apiId := int32(apiId64)
 
-	tdlibParameters := &client.SetTdlibParametersRequest{
+	tdlibParameters := &tdlib.SetTdlibParametersRequest{
 		UseTestDc:           false,
 		DatabaseDirectory:   filepath.Join("./", "database"),
 		FilesDirectory:      filepath.Join("./", "files"),
@@ -34,49 +35,54 @@ func Auth(apiIdRaw string, apiHash string) *client.Client {
 		ApplicationVersion:  "1.0.0",
 	}
 
-	authorizer := client.ClientAuthorizer(tdlibParameters)
-	go client.CliInteractor(authorizer)
+	authorizer := tdlib.ClientAuthorizer(tdlibParameters)
+	go tdlib.CliInteractor(authorizer)
 
-	_, err = client.SetLogVerbosityLevel(&client.SetLogVerbosityLevelRequest{
+	_, err = tdlib.SetLogVerbosityLevel(&tdlib.SetLogVerbosityLevelRequest{
 		NewVerbosityLevel: 1,
 	})
 	if err != nil {
-		log.Fatalf("SetLogVerbosityLevel error: %s", err)
+		log.Printf("SetLogVerbosityLevel error: %s", err)
+		return nil, err
 	}
 
-	tdlibClient, err := client.NewClient(authorizer)
+	client, err := tdlib.NewClient(authorizer)
 	if err != nil {
-		log.Fatalf("NewClient error: %s", err)
+		log.Printf("NewClient error: %s", err)
+		return nil, err
 	}
 
-	go handlers.HandleShutDown(tdlibClient)
+	go handlers.HandleShutDown(client)
 
-	versionOption, err := client.GetOption(&client.GetOptionRequest{
+	versionOption, err := client.GetOption(&tdlib.GetOptionRequest{
 		Name: "version",
 	})
 	if err != nil {
-		log.Fatalf("GetOption error: %s", err)
+		log.Printf("GetOption error: %s", err)
+		return client, err
 	}
 
-	commitOption, err := client.GetOption(&client.GetOptionRequest{
+	commitOption, err := client.GetOption(&tdlib.GetOptionRequest{
 		Name: "commit_hash",
 	})
 	if err != nil {
-		log.Fatalf("GetOption error: %s", err)
+		log.Printf("GetOption error: %s", err)
+		return client, err
 	}
 
-	log.Printf("TDLib version: %s (commit: %s)", versionOption.(*client.OptionValueString).Value, commitOption.(*client.OptionValueString).Value)
+	log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
 
-	if commitOption.(*client.OptionValueString).Value != client.TDLIB_VERSION {
-		log.Printf("TDLib verson supported by the library (%s) is not the same as TDLIB version (%s)", client.TDLIB_VERSION, commitOption.(*client.OptionValueString).Value)
+	if commitOption.(*tdlib.OptionValueString).Value != tdlib.TDLIB_VERSION {
+		log.Printf("TDLib verson supported by the library (%s) is not the same as TDLIB version (%s)", tdlib.TDLIB_VERSION, commitOption.(*tdlib.OptionValueString).Value)
 	}
 
-	me, err := tdlibClient.GetMe(context.Background())
+	me, err := client.GetMe(context.Background())
 	if err != nil {
-		log.Fatalf("GetMe error: %s", err)
+		log.Printf("GetMe error: %s", err)
+		return client, err
 	}
 
 	log.Printf("Me: %s %s", me.FirstName, me.LastName)
 
-	return tdlibClient
+	return client, nil
 }
