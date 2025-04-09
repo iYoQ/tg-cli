@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"path/filepath"
 	"strconv"
@@ -46,7 +47,23 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 		return nil, err
 	}
 
-	client, err := tdlib.NewClient(authorizer)
+	// получение апдейтов, в частности новых сообщений, впихнуть логику UpdateNewMessage в GetMessages, разобраться с остальным
+	resHandCallback := func(result tdlib.Type) {
+		switch update := result.(type) {
+		case *tdlib.UpdateNewMessage:
+			message := update.Message
+			switch content := message.Content.(type) {
+			case *tdlib.MessageText:
+				fmt.Printf("%s", content.Text.Text)
+			default:
+				fmt.Printf("content: %#v\n", content)
+			}
+		default:
+			fmt.Printf("type: %#v\n", update)
+		}
+	}
+
+	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(resHandCallback)))
 	if err != nil {
 		log.Printf("NewClient error: %s", err)
 		return nil, err
