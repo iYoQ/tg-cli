@@ -8,6 +8,7 @@ import (
 	"tg-cli/console"
 	"tg-cli/handlers"
 
+	"github.com/chzyer/readline"
 	"github.com/joho/godotenv"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
@@ -34,7 +35,19 @@ func Init() error {
 		}
 	}()
 
-	console.Start(client, updatesChannel)
+	reader, err := readline.NewEx(&readline.Config{
+		Prompt:          ">> ",
+		InterruptPrompt: "back",
+		EOFPrompt:       "exit",
+	})
+
+	if err != nil {
+		log.Printf("failed to initialize readline: %v", err)
+		return err
+	}
+	defer reader.Close()
+
+	console.Start(client, reader, updatesChannel)
 	return nil
 }
 

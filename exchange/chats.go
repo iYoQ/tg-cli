@@ -1,7 +1,6 @@
 package exchange
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"log"
@@ -31,7 +30,7 @@ func GetChats(client *tdlib.Client, size int32) {
 }
 
 // Переработать этот пиздец, добавить идентификатор того кто отправлял сообщение
-func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Message, reader *bufio.Reader) {
+func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Message, reader *readline.Instance) {
 	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		log.Printf("Failed open chat %d, error: %s", chatId, err)
@@ -75,21 +74,19 @@ func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Mes
 
 	inputChannel := make(chan string)
 
-	rl, err := readline.NewEx(&readline.Config{})
-	if err != nil {
-		log.Fatalf("failed to initialize readline: %v", err)
-	}
-	defer rl.Close()
-
 	go func() {
 		for {
-			msg, err := rl.Readline()
+			msg, err := reader.Readline()
 			if err != nil {
-				fmt.Println("Failed to read input")
-				return
+				fmt.Printf("Failed to read input, error: %s\n", err)
+				msg = "exit"
 			}
 
 			inputChannel <- msg
+			if msg == "exit" {
+				close(inputChannel)
+				return
+			}
 		}
 	}()
 
