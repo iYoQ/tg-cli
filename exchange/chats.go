@@ -1,10 +1,13 @@
 package exchange
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
+	"github.com/chzyer/readline"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -28,7 +31,7 @@ func GetChats(client *tdlib.Client, size int32) {
 }
 
 // Переработать этот пиздец, добавить идентификатор того кто отправлял сообщение
-func GetMessages(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Message) {
+func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Message, reader *bufio.Reader) {
 	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		log.Printf("Failed open chat %d, error: %s", chatId, err)
@@ -61,6 +64,7 @@ func GetMessages(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.
 	fmt.Printf("Chat history, last %d messages\n", moreMsg.TotalCount)
 	fmt.Println("-----------------------------------------------------------")
 
+	// сделать в reverse порядке?
 	for _, message := range moreMsg.Messages {
 		switch content := message.Content.(type) {
 		case *tdlib.MessageText:
@@ -69,16 +73,55 @@ func GetMessages(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.
 		}
 	}
 
-	for {
-		message, ok := <-updatesChannel
-		if !ok {
-			break
-		}
+	inputChannel := make(chan string)
 
-		switch content := message.Content.(type) {
-		case *tdlib.MessageText:
-			fmt.Printf("%s\n", content.Text.Text)
+	rl, err := readline.NewEx(&readline.Config{})
+	if err != nil {
+		log.Fatalf("failed to initialize readline: %v", err)
+	}
+	defer rl.Close()
+
+	go func() {
+		for {
+			msg, err := rl.Readline()
+			if err != nil {
+				fmt.Println("Failed to read input")
+				return
+			}
+
+			inputChannel <- msg
+		}
+	}()
+
+	for {
+		select {
+		case message, ok := <-updatesChannel:
+			if !ok {
+				inputChannel <- "Channel is closed"
+				return
+			}
+
+			if message.ChatId == chatId {
+				switch content := message.Content.(type) {
+				case *tdlib.MessageText:
+					fmt.Printf("%s\n", content.Text.Text)
+				}
+			}
+		case msg := <-inputChannel:
+			if msg == "exit" {
+				return
+			}
+
+			msgSplit := strings.Split(msg, " ")
+			if msgSplit[0] == "/ph" {
+				photoPath := msgSplit[1]
+				text := strings.Join(msgSplit[2:], " ")
+				SendPhoto(client, chatId, photoPath, text)
+			} else {
+				SendText(client, chatId, msg)
+			}
 		}
 
 	}
+
 }

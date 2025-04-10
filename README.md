@@ -17,7 +17,6 @@ Telegram client for interaction in cli
 		cd ..
 		cd ..
 		ls -l /usr/local
-- Then hit 
-		
-		go run .
+- Then hit
 
+		go run .

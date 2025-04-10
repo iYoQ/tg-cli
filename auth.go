@@ -10,11 +10,11 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, error) {
+func Auth(apiIdRaw string, apiHash string, updatesChannel chan *tdlib.Message) (*tdlib.Client, error) {
 	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
 	if err != nil {
 		log.Printf("strconv.Atoi error: %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	apiId := int32(apiId64)
@@ -43,15 +43,14 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, 
 	})
 	if err != nil {
 		log.Printf("SetLogVerbosityLevel error: %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 
-	ch := make(chan *tdlib.Message)
 	resHandCallback := func(result tdlib.Type) {
 		go func() {
 			switch update := result.(type) {
 			case *tdlib.UpdateNewMessage:
-				ch <- update.Message
+				updatesChannel <- update.Message
 			}
 		}()
 	}
@@ -59,7 +58,7 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, 
 	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(resHandCallback)))
 	if err != nil {
 		log.Printf("NewClient error: %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	go handlers.HandleShutDown(client)
@@ -69,7 +68,7 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, 
 	})
 	if err != nil {
 		log.Printf("GetOption error: %s", err)
-		return client, nil, err
+		return client, err
 	}
 
 	commitOption, err := client.GetOption(&tdlib.GetOptionRequest{
@@ -77,7 +76,7 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, 
 	})
 	if err != nil {
 		log.Printf("GetOption error: %s", err)
-		return client, nil, err
+		return client, err
 	}
 
 	log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
@@ -89,10 +88,10 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, 
 	me, err := client.GetMe(context.Background())
 	if err != nil {
 		log.Printf("GetMe error: %s", err)
-		return client, nil, err
+		return client, err
 	}
 
 	log.Printf("Me: %s %s", me.FirstName, me.LastName)
 
-	return client, ch, nil
+	return client, nil
 }

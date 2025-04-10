@@ -86,6 +86,7 @@ func createMessage(client *tdlib.Client, reader *bufio.Reader) {
 	} else {
 		exchange.SendText(client, chatId, msg)
 	}
+	fmt.Println("Message sent")
 }
 
 func getChatList(client *tdlib.Client, reader *bufio.Reader) {
@@ -123,7 +124,7 @@ func openChat(client *tdlib.Client, updatesChannel chan *tdlib.Message, reader *
 		return
 	}
 
-	exchange.GetMessages(client, chatId, updatesChannel)
+	exchange.OpenChat(client, chatId, updatesChannel, reader)
 }
 
 func readInput(reader *bufio.Reader) (string, error) {

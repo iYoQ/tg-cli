@@ -9,12 +9,14 @@ import (
 	"tg-cli/handlers"
 
 	"github.com/joho/godotenv"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 func Init() error {
 	apiId, apiHash := loadParams()
+	updatesChannel := make(chan *tdlib.Message)
 
-	client, updatesChannel, err := Auth(apiId, apiHash)
+	client, err := Auth(apiId, apiHash, updatesChannel)
 	if err != nil {
 		if client != nil {
 			handlers.ShutDown(client)
