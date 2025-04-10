@@ -54,6 +54,4 @@ func sendMessage(client *tdlib.Client, messageRequest *tdlib.SendMessageRequest)
 		log.Printf("Failed to send message: %v", err)
 		return
 	}
-
-	log.Println("Message sent")
 }

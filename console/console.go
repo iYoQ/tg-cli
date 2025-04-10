@@ -1,22 +1,19 @@
 package console
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
 	"tg-cli/exchange"
 
+	"github.com/chzyer/readline"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 const NUMBER_OF_CHATS = 5
 
-func Start(client *tdlib.Client) {
-	reader := bufio.NewReader(os.Stdin)
-
+func Start(client *tdlib.Client, reader *readline.Instance, updatesChannel chan *tdlib.Message) {
 	fmt.Printf("\n%d recently open chats:\n", NUMBER_OF_CHATS)
 	fmt.Println("-----------------------------------------------------------")
 	exchange.GetChats(client, NUMBER_OF_CHATS)
@@ -30,7 +27,6 @@ func Start(client *tdlib.Client) {
 
 		input, err := readInput(reader)
 		if err != nil {
-			fmt.Println("Failed to read input")
 			continue
 		}
 
@@ -46,7 +42,7 @@ func Start(client *tdlib.Client) {
 		case 2:
 			getChatList(client, reader)
 		case 3:
-			openChat(client, reader)
+			openChat(client, updatesChannel, reader)
 		case 9:
 			return
 		default:
@@ -55,12 +51,11 @@ func Start(client *tdlib.Client) {
 	}
 }
 
-func createMessage(client *tdlib.Client, reader *bufio.Reader) {
+func createMessage(client *tdlib.Client, reader *readline.Instance) {
 	fmt.Println("\nEnter chat id:")
 
 	input, err := readInput(reader)
 	if err != nil {
-		fmt.Println("Failed to read input")
 		return
 	}
 
@@ -74,7 +69,6 @@ func createMessage(client *tdlib.Client, reader *bufio.Reader) {
 
 	msg, err := readInput(reader)
 	if err != nil {
-		fmt.Println("Failed to read input")
 		return
 	}
 
@@ -86,14 +80,14 @@ func createMessage(client *tdlib.Client, reader *bufio.Reader) {
 	} else {
 		exchange.SendText(client, chatId, msg)
 	}
+	fmt.Println("Message sent")
 }
 
-func getChatList(client *tdlib.Client, reader *bufio.Reader) {
+func getChatList(client *tdlib.Client, reader *readline.Instance) {
 	fmt.Println("\nChoose a number of chats:")
 
 	input, err := readInput(reader)
 	if err != nil {
-		fmt.Println("Failed to read input")
 		return
 	}
 
@@ -108,12 +102,11 @@ func getChatList(client *tdlib.Client, reader *bufio.Reader) {
 	exchange.GetChats(client, size32)
 }
 
-func openChat(client *tdlib.Client, reader *bufio.Reader) {
+func openChat(client *tdlib.Client, updatesChannel chan *tdlib.Message, reader *readline.Instance) {
 	fmt.Println("\nEnter chat id:")
 
 	input, err := readInput(reader)
 	if err != nil {
-		fmt.Println("Failed to read input")
 		return
 	}
 
@@ -123,12 +116,13 @@ func openChat(client *tdlib.Client, reader *bufio.Reader) {
 		return
 	}
 
-	exchange.GetMessages(client, chatId)
+	exchange.OpenChat(client, chatId, updatesChannel, reader)
 }
 
-func readInput(reader *bufio.Reader) (string, error) {
-	input, err := reader.ReadString('\n')
+func readInput(reader *readline.Instance) (string, error) {
+	input, err := reader.Readline()
 	if err != nil {
+		fmt.Printf("%v", err)
 		return "", err
 	}
 

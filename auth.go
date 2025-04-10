@@ -10,7 +10,7 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
+func Auth(apiIdRaw string, apiHash string, updatesChannel chan *tdlib.Message) (*tdlib.Client, error) {
 	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
 	if err != nil {
 		log.Printf("strconv.Atoi error: %s", err)
@@ -46,7 +46,16 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 		return nil, err
 	}
 
-	client, err := tdlib.NewClient(authorizer)
+	resHandCallback := func(result tdlib.Type) {
+		go func() {
+			switch update := result.(type) {
+			case *tdlib.UpdateNewMessage:
+				updatesChannel <- update.Message
+			}
+		}()
+	}
+
+	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(resHandCallback)))
 	if err != nil {
 		log.Printf("NewClient error: %s", err)
 		return nil, err
