@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"path/filepath"
 	"strconv"
@@ -11,11 +10,11 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
+func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, chan *tdlib.Message, error) {
 	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
 	if err != nil {
 		log.Printf("strconv.Atoi error: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	apiId := int32(apiId64)
@@ -44,29 +43,23 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 	})
 	if err != nil {
 		log.Printf("SetLogVerbosityLevel error: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	// получение апдейтов, в частности новых сообщений, впихнуть логику UpdateNewMessage в GetMessages, разобраться с остальным
+	ch := make(chan *tdlib.Message)
 	resHandCallback := func(result tdlib.Type) {
-		switch update := result.(type) {
-		case *tdlib.UpdateNewMessage:
-			message := update.Message
-			switch content := message.Content.(type) {
-			case *tdlib.MessageText:
-				fmt.Printf("%s", content.Text.Text)
-			default:
-				fmt.Printf("content: %#v\n", content)
+		go func() {
+			switch update := result.(type) {
+			case *tdlib.UpdateNewMessage:
+				ch <- update.Message
 			}
-		default:
-			fmt.Printf("type: %#v\n", update)
-		}
+		}()
 	}
 
 	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(resHandCallback)))
 	if err != nil {
 		log.Printf("NewClient error: %s", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	go handlers.HandleShutDown(client)
@@ -76,7 +69,7 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 	})
 	if err != nil {
 		log.Printf("GetOption error: %s", err)
-		return client, err
+		return client, nil, err
 	}
 
 	commitOption, err := client.GetOption(&tdlib.GetOptionRequest{
@@ -84,7 +77,7 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 	})
 	if err != nil {
 		log.Printf("GetOption error: %s", err)
-		return client, err
+		return client, nil, err
 	}
 
 	log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
@@ -96,10 +89,10 @@ func Auth(apiIdRaw string, apiHash string) (*tdlib.Client, error) {
 	me, err := client.GetMe(context.Background())
 	if err != nil {
 		log.Printf("GetMe error: %s", err)
-		return client, err
+		return client, nil, err
 	}
 
 	log.Printf("Me: %s %s", me.FirstName, me.LastName)
 
-	return client, nil
+	return client, ch, nil
 }

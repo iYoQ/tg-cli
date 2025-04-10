@@ -14,7 +14,7 @@ import (
 func Init() error {
 	apiId, apiHash := loadParams()
 
-	client, err := Auth(apiId, apiHash)
+	client, updatesChannel, err := Auth(apiId, apiHash)
 	if err != nil {
 		if client != nil {
 			handlers.ShutDown(client)
@@ -32,7 +32,7 @@ func Init() error {
 		}
 	}()
 
-	console.Start(client)
+	console.Start(client, updatesChannel)
 	return nil
 }
 

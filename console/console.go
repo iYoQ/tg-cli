@@ -14,7 +14,7 @@ import (
 
 const NUMBER_OF_CHATS = 5
 
-func Start(client *tdlib.Client) {
+func Start(client *tdlib.Client, updatesChannel chan *tdlib.Message) {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Printf("\n%d recently open chats:\n", NUMBER_OF_CHATS)
@@ -46,7 +46,7 @@ func Start(client *tdlib.Client) {
 		case 2:
 			getChatList(client, reader)
 		case 3:
-			openChat(client, reader)
+			openChat(client, updatesChannel, reader)
 		case 9:
 			return
 		default:
@@ -108,7 +108,7 @@ func getChatList(client *tdlib.Client, reader *bufio.Reader) {
 	exchange.GetChats(client, size32)
 }
 
-func openChat(client *tdlib.Client, reader *bufio.Reader) {
+func openChat(client *tdlib.Client, updatesChannel chan *tdlib.Message, reader *bufio.Reader) {
 	fmt.Println("\nEnter chat id:")
 
 	input, err := readInput(reader)
@@ -123,7 +123,7 @@ func openChat(client *tdlib.Client, reader *bufio.Reader) {
 		return
 	}
 
-	exchange.GetMessages(client, chatId)
+	exchange.GetMessages(client, chatId, updatesChannel)
 }
 
 func readInput(reader *bufio.Reader) (string, error) {

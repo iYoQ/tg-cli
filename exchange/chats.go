@@ -28,7 +28,7 @@ func GetChats(client *tdlib.Client, size int32) {
 }
 
 // Переработать этот пиздец, добавить идентификатор того кто отправлял сообщение
-func GetMessages(client *tdlib.Client, chatId int64) {
+func GetMessages(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Message) {
 	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		log.Printf("Failed open chat %d, error: %s", chatId, err)
@@ -67,5 +67,18 @@ func GetMessages(client *tdlib.Client, chatId int64) {
 			fmt.Println(content.Text.Text)
 			fmt.Println("-----------------------------------------------------------")
 		}
+	}
+
+	for {
+		message, ok := <-updatesChannel
+		if !ok {
+			break
+		}
+
+		switch content := message.Content.(type) {
+		case *tdlib.MessageText:
+			fmt.Printf("%s\n", content.Text.Text)
+		}
+
 	}
 }
