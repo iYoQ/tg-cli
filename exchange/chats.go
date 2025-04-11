@@ -79,7 +79,9 @@ func OpenChat(conn *connection.Connection, chatId int64, reader *readline.Instan
 		for {
 			msg, err := reader.Readline()
 			if err != nil {
-				fmt.Printf("Failed to read input, error: %s\n", err)
+				if err.Error() != "Interrupt" {
+					fmt.Printf("Failed to read input, error: %#v\n", err)
+				}
 				msg = "exit"
 			}
 
