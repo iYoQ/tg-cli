@@ -5,23 +5,21 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"tg-cli/connection"
 	"tg-cli/console"
-	"tg-cli/handlers"
 
 	"github.com/chzyer/readline"
 	"github.com/joho/godotenv"
-	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 func Init() error {
 	apiId, apiHash := loadParams()
-	updatesChannel := make(chan *tdlib.Message)
 
-	client, err := Auth(apiId, apiHash, updatesChannel)
+	conn := connection.NewConnection()
+
+	err := Auth(apiId, apiHash, conn)
 	if err != nil {
-		if client != nil {
-			handlers.ShutDown(client)
-		}
+		conn.Close()
 		return err
 	}
 
@@ -30,8 +28,8 @@ func Init() error {
 			log.Printf("panic recovered: %v\n%s", r, debug.Stack())
 		}
 
-		if client != nil {
-			handlers.ShutDown(client)
+		if conn.Client != nil {
+			conn.Close()
 		}
 	}()
 
@@ -47,7 +45,7 @@ func Init() error {
 	}
 	defer reader.Close()
 
-	console.Start(client, reader, updatesChannel)
+	console.Start(conn, reader)
 	return nil
 }
 

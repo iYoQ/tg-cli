@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"tg-cli/connection"
 	"tg-cli/exchange"
 
 	"github.com/chzyer/readline"
@@ -13,10 +14,10 @@ import (
 
 const NUMBER_OF_CHATS = 5
 
-func Start(client *tdlib.Client, reader *readline.Instance, updatesChannel chan *tdlib.Message) {
+func Start(conn *connection.Connection, reader *readline.Instance) {
 	fmt.Printf("\n%d recently open chats:\n", NUMBER_OF_CHATS)
 	fmt.Println("-----------------------------------------------------------")
-	exchange.GetChats(client, NUMBER_OF_CHATS)
+	exchange.GetChats(conn.Client, NUMBER_OF_CHATS)
 
 	for {
 		fmt.Println("\nChoose an option:")
@@ -38,11 +39,11 @@ func Start(client *tdlib.Client, reader *readline.Instance, updatesChannel chan 
 
 		switch choice {
 		case 1:
-			createMessage(client, reader)
+			createMessage(conn.Client, reader)
 		case 2:
-			getChatList(client, reader)
+			getChatList(conn.Client, reader)
 		case 3:
-			openChat(client, updatesChannel, reader)
+			openChat(conn, reader)
 		case 9:
 			return
 		default:
@@ -102,7 +103,7 @@ func getChatList(client *tdlib.Client, reader *readline.Instance) {
 	exchange.GetChats(client, size32)
 }
 
-func openChat(client *tdlib.Client, updatesChannel chan *tdlib.Message, reader *readline.Instance) {
+func openChat(conn *connection.Connection, reader *readline.Instance) {
 	fmt.Println("\nEnter chat id:")
 
 	input, err := readInput(reader)
@@ -116,7 +117,7 @@ func openChat(client *tdlib.Client, updatesChannel chan *tdlib.Message, reader *
 		return
 	}
 
-	exchange.OpenChat(client, chatId, updatesChannel, reader)
+	exchange.OpenChat(conn, chatId, reader)
 }
 
 func readInput(reader *readline.Instance) (string, error) {
