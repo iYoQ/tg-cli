@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"tg-cli/connection"
 
 	"github.com/chzyer/readline"
 	tdlib "github.com/zelenin/go-tdlib/client"
@@ -30,14 +31,14 @@ func GetChats(client *tdlib.Client, size int32) {
 }
 
 // Переработать этот пиздец, добавить идентификатор того кто отправлял сообщение
-func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Message, reader *readline.Instance) {
-	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
+func OpenChat(conn *connection.Connection, chatId int64, reader *readline.Instance) {
+	_, err := conn.Client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		log.Printf("Failed open chat %d, error: %s", chatId, err)
 		return
 	}
 
-	messages, err := client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
+	messages, err := conn.Client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
 		ChatId:        chatId,
 		FromMessageId: 0,
 		Offset:        0,
@@ -48,7 +49,7 @@ func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Mes
 		return
 	}
 
-	moreMsg, err := client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
+	moreMsg, err := conn.Client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
 		ChatId:        chatId,
 		FromMessageId: messages.Messages[0].Id,
 		Offset:        0,
@@ -78,7 +79,9 @@ func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Mes
 		for {
 			msg, err := reader.Readline()
 			if err != nil {
-				fmt.Printf("Failed to read input, error: %s\n", err)
+				if err.Error() != "Interrupt" {
+					fmt.Printf("Failed to read input, error: %#v\n", err)
+				}
 				msg = "exit"
 			}
 
@@ -92,7 +95,7 @@ func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Mes
 
 	for {
 		select {
-		case message, ok := <-updatesChannel:
+		case message, ok := <-conn.UpdatesChannel:
 			if !ok {
 				inputChannel <- "Channel is closed"
 				return
@@ -113,9 +116,9 @@ func OpenChat(client *tdlib.Client, chatId int64, updatesChannel chan *tdlib.Mes
 			if msgSplit[0] == "/ph" {
 				photoPath := msgSplit[1]
 				text := strings.Join(msgSplit[2:], " ")
-				SendPhoto(client, chatId, photoPath, text)
+				SendPhoto(conn.Client, chatId, photoPath, text)
 			} else {
-				SendText(client, chatId, msg)
+				SendText(conn.Client, chatId, msg)
 			}
 		}
 

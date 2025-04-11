@@ -5,16 +5,16 @@ import (
 	"log"
 	"path/filepath"
 	"strconv"
-	"tg-cli/handlers"
+	"tg-cli/connection"
 
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(apiIdRaw string, apiHash string, updatesChannel chan *tdlib.Message) (*tdlib.Client, error) {
+func Auth(apiIdRaw string, apiHash string, conn *connection.Connection) error {
 	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
 	if err != nil {
 		log.Printf("strconv.Atoi error: %s", err)
-		return nil, err
+		return err
 	}
 
 	apiId := int32(apiId64)
@@ -43,32 +43,25 @@ func Auth(apiIdRaw string, apiHash string, updatesChannel chan *tdlib.Message) (
 	})
 	if err != nil {
 		log.Printf("SetLogVerbosityLevel error: %s", err)
-		return nil, err
+		return err
 	}
 
-	resHandCallback := func(result tdlib.Type) {
-		go func() {
-			switch update := result.(type) {
-			case *tdlib.UpdateNewMessage:
-				updatesChannel <- update.Message
-			}
-		}()
-	}
-
-	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(resHandCallback)))
+	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(conn.CreateCallbackHandler)))
 	if err != nil {
 		log.Printf("NewClient error: %s", err)
-		return nil, err
+		return err
 	}
 
-	go handlers.HandleShutDown(client)
+	conn.SetClient(client)
+
+	go conn.ShutDownListener()
 
 	versionOption, err := client.GetOption(&tdlib.GetOptionRequest{
 		Name: "version",
 	})
 	if err != nil {
 		log.Printf("GetOption error: %s", err)
-		return client, err
+		return err
 	}
 
 	commitOption, err := client.GetOption(&tdlib.GetOptionRequest{
@@ -76,7 +69,7 @@ func Auth(apiIdRaw string, apiHash string, updatesChannel chan *tdlib.Message) (
 	})
 	if err != nil {
 		log.Printf("GetOption error: %s", err)
-		return client, err
+		return err
 	}
 
 	log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
@@ -88,10 +81,10 @@ func Auth(apiIdRaw string, apiHash string, updatesChannel chan *tdlib.Message) (
 	me, err := client.GetMe(context.Background())
 	if err != nil {
 		log.Printf("GetMe error: %s", err)
-		return client, err
+		return err
 	}
 
 	log.Printf("Me: %s %s", me.FirstName, me.LastName)
 
-	return client, nil
+	return nil
 }
