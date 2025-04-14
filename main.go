@@ -7,8 +7,9 @@ import (
 	"runtime/debug"
 	"strconv"
 	"tg-cli/connection"
-	"tg-cli/console"
+	"tg-cli/view"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/chzyer/readline"
 	"github.com/joho/godotenv"
 )
@@ -49,7 +50,13 @@ func Init() error {
 	}
 	defer reader.Close()
 
-	console.Start(conn, reader)
+	// console.Start(conn, reader)
+
+	p := tea.NewProgram(view.NewModel(conn))
+	if _, err := p.Run(); err != nil {
+		return nil
+	}
+
 	return nil
 }
 
