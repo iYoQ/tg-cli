@@ -17,6 +17,10 @@ Telegram client for interaction in cli
 		cd ..
 		cd ..
 		ls -l /usr/local
-- Then hit
-
-		go run .
+- Get creds
+  
+ 		receive telegram api
+		add ENV API_ID and API_HASH via .env file or manual
+- Start
+  
+  		go run .
