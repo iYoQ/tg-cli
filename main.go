@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"tg-cli/connection"
 	"tg-cli/console"
 
@@ -12,16 +13,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Config struct {
+	apiId   int32
+	apiHash string
+}
+
 func Init() error {
-	apiId, apiHash := loadParams()
+	cfg := loadParams()
 
 	conn := connection.NewConnection()
-
-	err := Auth(apiId, apiHash, conn)
-	if err != nil {
-		conn.Close()
-		return err
-	}
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -32,6 +32,10 @@ func Init() error {
 			conn.Close()
 		}
 	}()
+
+	if err := Auth(cfg, conn); err != nil {
+		return err
+	}
 
 	reader, err := readline.NewEx(&readline.Config{
 		Prompt:          ">> ",
@@ -49,15 +53,16 @@ func Init() error {
 	return nil
 }
 
-func loadParams() (string, string) {
-	_ = godotenv.Load()
+func loadParams() Config {
+	godotenv.Load()
 
 	apiIdFlag := flag.String("id", "", "api id")
 	apiHashFlag := flag.String("hash", "", "api hash")
+	flag.Parse()
 
-	apiId := *apiIdFlag
-	if apiId == "" {
-		apiId = os.Getenv("API_ID")
+	apiIdRaw := *apiIdFlag
+	if apiIdRaw == "" {
+		apiIdRaw = os.Getenv("API_ID")
 	}
 
 	apiHash := *apiHashFlag
@@ -65,11 +70,21 @@ func loadParams() (string, string) {
 		apiHash = os.Getenv("API_HASH")
 	}
 
-	if apiId == "" || apiHash == "" {
-		log.Printf("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
+	if apiIdRaw == "" || apiHash == "" {
+		log.Fatalf("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
 	}
 
-	return apiId, apiHash
+	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
+	if err != nil {
+		log.Fatalf("strconv.Atoi error: %s", err)
+	}
+
+	apiId := int32(apiId64)
+
+	return Config{
+		apiId:   apiId,
+		apiHash: apiHash,
+	}
 }
 
 func main() {

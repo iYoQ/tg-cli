@@ -4,21 +4,12 @@ import (
 	"context"
 	"log"
 	"path/filepath"
-	"strconv"
 	"tg-cli/connection"
 
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(apiIdRaw string, apiHash string, conn *connection.Connection) error {
-	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
-	if err != nil {
-		log.Printf("strconv.Atoi error: %s", err)
-		return err
-	}
-
-	apiId := int32(apiId64)
-
+func Auth(cfg Config, conn *connection.Connection) error {
 	tdlibParameters := &tdlib.SetTdlibParametersRequest{
 		UseTestDc:           false,
 		DatabaseDirectory:   filepath.Join("./", "database"),
@@ -27,8 +18,8 @@ func Auth(apiIdRaw string, apiHash string, conn *connection.Connection) error {
 		UseChatInfoDatabase: true,
 		UseMessageDatabase:  true,
 		UseSecretChats:      false,
-		ApiId:               apiId,
-		ApiHash:             apiHash,
+		ApiId:               cfg.apiId,
+		ApiHash:             cfg.apiHash,
 		SystemLanguageCode:  "en",
 		DeviceModel:         "Server",
 		SystemVersion:       "1.0.0",
@@ -38,7 +29,7 @@ func Auth(apiIdRaw string, apiHash string, conn *connection.Connection) error {
 	authorizer := tdlib.ClientAuthorizer(tdlibParameters)
 	go tdlib.CliInteractor(authorizer)
 
-	_, err = tdlib.SetLogVerbosityLevel(&tdlib.SetLogVerbosityLevelRequest{
+	_, err := tdlib.SetLogVerbosityLevel(&tdlib.SetLogVerbosityLevelRequest{
 		NewVerbosityLevel: 1,
 	})
 	if err != nil {
