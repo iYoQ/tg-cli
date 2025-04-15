@@ -104,7 +104,15 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 			if msg.ChatId == m.chatId {
 				switch content := msg.Content.(type) {
 				case *tdlib.MessageText:
-					from := fmt.Sprintf("[%s]", senders[msg.SenderId.(*tdlib.MessageSenderUser).UserId])
+					userId := msg.SenderId.(*tdlib.MessageSenderUser).UserId
+					userName := senders[userId]
+					unkUser, err := m.conn.Client.GetChat(context.Background(), &tdlib.GetChatRequest{ChatId: userId})
+					userName = unkUser.Title
+					if err != nil {
+						userName = err.Error()
+					}
+
+					from := fmt.Sprintf("[%s]", userName)
 					if err := readMessage(m.conn.Client, msg.ChatId, msg.Id); err != nil {
 						return errMsg(err)
 					}
