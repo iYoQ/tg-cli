@@ -12,7 +12,7 @@ func (m model) View() string {
 
 	switch m.state {
 	case chatListView:
-		return m.chatList.View()
+		return docStyle.Render(m.chatList.View())
 
 	case chatView:
 		var b strings.Builder

@@ -37,7 +37,7 @@ func start() error {
 		return err
 	}
 
-	p := tea.NewProgram(view.NewModel(conn))
+	p := tea.NewProgram(view.NewModel(conn), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		return err
 	}

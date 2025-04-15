@@ -45,14 +45,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = chatListView
 				closeChat(m.conn.Client, m.chatId)
 				return m, nil
-			default:
+			case tea.KeyRunes:
 				m.input += msg.String()
 			}
 			return m, nil
 		}
 
 	case tea.WindowSizeMsg:
-		m.chatList.SetSize(msg.Width, msg.Height)
+		h, v := docStyle.GetFrameSize()
+		m.chatList.SetSize(msg.Width-h, msg.Height-v)
 
 	case errMsg:
 		m.err = msg

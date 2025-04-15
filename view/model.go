@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -23,7 +24,8 @@ const (
 )
 
 var (
-	senders = make(map[int64]string)
+	docStyle = lipgloss.NewStyle().Margin(1, 2)
+	senders  = make(map[int64]string)
 )
 
 type errMsg error
@@ -53,6 +55,7 @@ type model struct {
 func NewModel(conn *connection.Connection) model {
 	chatList := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
 	chatList.SetStatusBarItemName("chat", "chats")
+	chatList.SetShowTitle(false)
 
 	return model{
 		conn:     conn,
