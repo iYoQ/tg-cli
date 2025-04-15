@@ -16,33 +16,33 @@ const (
 )
 
 type errMsg error
-type chatList []*tdlib.Chat
+type chatListMsg []*tdlib.Chat
 type chatHistoryMsg []string
 type tdMessageMsg string
 
-const LEN = 10
-
 type model struct {
-	conn     *connection.Connection
-	state    viewState
-	chats    []*tdlib.Chat
-	selected int
-	chatId   int64
-	messages []string
-	input    string
-	err      error
+	conn          *connection.Connection
+	state         viewState
+	chats         []*tdlib.Chat
+	selected      int
+	chatId        int64
+	messages      []string
+	input         string
+	err           error
+	historyLength int32
 }
 
 func NewModel(conn *connection.Connection) model {
 	return model{
-		conn:  conn,
-		state: chatListView,
+		conn:          conn,
+		state:         chatListView,
+		historyLength: 10,
 	}
 }
 
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg {
-		chats, err := m.conn.Client.GetChats(context.Background(), &tdlib.GetChatsRequest{Limit: LEN})
+		chats, err := m.conn.Client.GetChats(context.Background(), &tdlib.GetChatsRequest{Limit: m.historyLength})
 		if err != nil {
 			return errMsg(err)
 		}
@@ -55,6 +55,6 @@ func (m model) Init() tea.Cmd {
 				results = append(results, chat)
 			}
 		}
-		return chatList(results)
+		return chatListMsg(results)
 	}
 }

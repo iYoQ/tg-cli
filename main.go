@@ -10,7 +10,6 @@ import (
 	"tg-cli/view"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/chzyer/readline"
 	"github.com/joho/godotenv"
 )
 
@@ -37,20 +36,6 @@ func Init() error {
 	if err := Auth(cfg, conn); err != nil {
 		return err
 	}
-
-	reader, err := readline.NewEx(&readline.Config{
-		Prompt:          ">> ",
-		InterruptPrompt: "back",
-		EOFPrompt:       "exit",
-	})
-
-	if err != nil {
-		log.Printf("failed to initialize readline: %v", err)
-		return err
-	}
-	defer reader.Close()
-
-	// console.Start(conn, reader)
 
 	p := tea.NewProgram(view.NewModel(conn))
 	if _, err := p.Run(); err != nil {

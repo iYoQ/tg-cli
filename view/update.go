@@ -52,7 +52,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.err = msg
 
-	case chatList:
+	case chatListMsg:
 		m.chats = msg
 
 	case chatHistoryMsg:
@@ -77,7 +77,7 @@ func (m model) openChatCmd() tea.Cmd {
 			ChatId:        m.chatId,
 			FromMessageId: 0,
 			Offset:        0,
-			Limit:         LEN,
+			Limit:         m.historyLength,
 		})
 		if err != nil {
 			return errMsg(err)

@@ -14,13 +14,18 @@ import (
 type Connection struct {
 	Client         *tdlib.Client
 	UpdatesChannel chan *tdlib.Message
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 func NewConnection() *Connection {
 	updatesChannel := make(chan *tdlib.Message)
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Connection{
 		Client:         nil,
 		UpdatesChannel: updatesChannel,
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 }
 
@@ -30,12 +35,22 @@ func (conn *Connection) SetClient(client *tdlib.Client) {
 
 func (conn *Connection) CreateCallbackHandler(result tdlib.Type) {
 	go func() {
-		switch update := result.(type) {
-		case *tdlib.UpdateNewMessage:
-			if conn.UpdatesChannel != nil {
-				conn.UpdatesChannel <- update.Message
-			} else {
-				log.Println("channel don't setup, check connection.UpdateChannel")
+		select {
+		case <-conn.ctx.Done():
+			return
+		default:
+			select {
+			case <-conn.ctx.Done():
+				return
+			default:
+				switch update := result.(type) {
+				case *tdlib.UpdateNewMessage:
+					if conn.UpdatesChannel != nil {
+						conn.UpdatesChannel <- update.Message
+					} else {
+						log.Println("channel don't setup, check connection.UpdateChannel")
+					}
+				}
 			}
 		}
 	}()
@@ -47,6 +62,8 @@ func (conn *Connection) Close() {
 	}
 
 	log.Println("\nShutting down TDLib client...")
+
+	conn.cancel()
 
 	if conn.UpdatesChannel != nil {
 		close(conn.UpdatesChannel)

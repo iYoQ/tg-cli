@@ -2,12 +2,10 @@ module tg-cli
 
 go 1.24.2
 
-require github.com/zelenin/go-tdlib v1.0.0-beta1
-
 require (
 	github.com/charmbracelet/bubbletea v1.3.4
-	github.com/chzyer/readline v1.5.1
 	github.com/joho/godotenv v1.5.1
+	github.com/zelenin/go-tdlib v1.0.0-beta1
 )
 
 require (
