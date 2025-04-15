@@ -17,6 +17,11 @@ const (
 	chatView
 )
 
+const (
+	historyLength int32 = 50
+	chatLength    int32 = 50
+)
+
 var (
 	senders = make(map[int64]string)
 )
@@ -36,14 +41,13 @@ func (c chatItem) Description() string { return fmt.Sprintf("ID: %d", c.id) }
 func (c chatItem) FilterValue() string { return c.title }
 
 type model struct {
-	conn          *connection.Connection
-	state         viewState
-	chatId        int64
-	messages      []string
-	input         string
-	err           error
-	historyLength int32
-	chatList      list.Model
+	conn     *connection.Connection
+	state    viewState
+	chatId   int64
+	messages []string
+	input    string
+	err      error
+	chatList list.Model
 }
 
 func NewModel(conn *connection.Connection) model {
@@ -51,16 +55,15 @@ func NewModel(conn *connection.Connection) model {
 	chatList.SetStatusBarItemName("chat", "chats")
 
 	return model{
-		conn:          conn,
-		state:         chatListView,
-		historyLength: 50,
-		chatList:      chatList,
+		conn:     conn,
+		state:    chatListView,
+		chatList: chatList,
 	}
 }
 
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg {
-		chats, err := m.conn.Client.GetChats(context.Background(), &tdlib.GetChatsRequest{Limit: m.historyLength})
+		chats, err := m.conn.Client.GetChats(context.Background(), &tdlib.GetChatsRequest{Limit: chatLength})
 		if err != nil {
 			return errMsg(err)
 		}

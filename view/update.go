@@ -43,6 +43,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			case tea.KeyCtrlC:
 				m.state = chatListView
+				closeChat(m.conn.Client, m.chatId)
 				return m, nil
 			default:
 				m.input += msg.String()
@@ -87,25 +88,12 @@ func (m model) openChatCmd() tea.Cmd {
 			return errMsg(err)
 		}
 
-		history, err := m.conn.Client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
-			ChatId:        m.chatId,
-			FromMessageId: 0,
-			Offset:        0,
-			Limit:         m.historyLength,
-		})
+		history, err := getChatHistory(m.conn, m.chatId)
 		if err != nil {
 			return errMsg(err)
 		}
 
-		var messages []string
-		for i := len(history.Messages) - 1; i >= 0; i-- {
-			msg := history.Messages[i]
-			if text, ok := msg.Content.(*tdlib.MessageText); ok {
-				from := fmt.Sprintf("[%s]", senders[msg.SenderId.(*tdlib.MessageSenderUser).UserId])
-				messages = append(messages, fmt.Sprintf("%s %s", from, text.Text.Text))
-			}
-		}
-		return chatHistoryMsg(messages)
+		return chatHistoryMsg(history)
 	}
 }
 
@@ -113,12 +101,38 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
-				if content, ok := msg.Content.(*tdlib.MessageText); ok {
+				switch content := msg.Content.(type) {
+				case *tdlib.MessageText:
 					from := fmt.Sprintf("[%s]", senders[msg.SenderId.(*tdlib.MessageSenderUser).UserId])
+					if err := readMessage(m.conn.Client, msg.ChatId, msg.Id); err != nil {
+						return errMsg(err)
+					}
 					return tdMessageMsg(fmt.Sprintf("%s %s", from, content.Text.Text))
 				}
 			}
 		}
 		return nil
 	}
+}
+
+func closeChat(client *tdlib.Client, chatId int64) error {
+	_, err := client.CloseChat(context.Background(), &tdlib.CloseChatRequest{ChatId: chatId})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func readMessage(client *tdlib.Client, chatId int64, messageId int64) error {
+	var messageIds []int64
+	messageIds = append(messageIds, messageId)
+	_, err := client.ViewMessages(context.Background(), &tdlib.ViewMessagesRequest{
+		ChatId:     chatId,
+		MessageIds: messageIds,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
