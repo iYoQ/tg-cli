@@ -2,7 +2,7 @@ package view
 
 import (
 	"fmt"
-	"tg-cli/exchange"
+	"tg-cli/requests"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,7 +30,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case chatView:
 			switch msg.Type {
 			case tea.KeyEnter:
-				go exchange.SendText(m.conn.Client, m.chatId, m.input)
+				go requests.SendText(m.conn.Client, m.chatId, m.input)
 				if m.chatId != m.conn.GetMe().Id {
 					m.messages = append(m.messages, fmt.Sprintf("You: %s", m.input))
 				}
@@ -82,7 +82,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) openChatCmd() tea.Cmd {
 	return func() tea.Msg {
-		history, err := getChatHistory(m.conn, m.chatId)
+		history, err := getChatHistory(m.conn.Client, m.chatId)
 		if err != nil {
 			return errMsg(err)
 		}
@@ -95,7 +95,7 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
-				from := getUserName(m.conn, msg)
+				from := getUserName(m.conn.Client, msg)
 				formatMsg := processMessages(msg, from)
 				updateMsg := tdMessageMsg(formatMsg)
 
