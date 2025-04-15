@@ -37,8 +37,8 @@ func start() error {
 		return err
 	}
 
-	p := tea.NewProgram(view.NewModel(conn), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
+	app := tea.NewProgram(view.NewModel(conn), tea.WithAltScreen())
+	if _, err := app.Run(); err != nil {
 		return err
 	}
 

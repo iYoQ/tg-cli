@@ -10,28 +10,39 @@ import (
 )
 
 func getChatHistory(conn *connection.Connection, chatId int64) ([]string, error) {
-	lastMssage, err := conn.Client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
-		ChatId:        chatId,
-		FromMessageId: 0,
-		Offset:        0,
-		Limit:         1,
-	})
+	_, err := conn.Client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		return nil, err
 	}
 
-	history, err := conn.Client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
-		ChatId:        chatId,
-		FromMessageId: lastMssage.Messages[0].Id,
-		Offset:        0,
-		Limit:         chatLength,
-	})
-	if err != nil {
-		return nil, err
+	var history []*tdlib.Message
+	fromMessageId := int64(0)
+
+	for int32(len(history)) < chatLength {
+
+		batch, err := conn.Client.GetChatHistory(context.Background(), &tdlib.GetChatHistoryRequest{
+			ChatId:        chatId,
+			FromMessageId: fromMessageId,
+			Offset:        0,
+			Limit:         min(pageSize, chatLength-int32(len(history))),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if len(batch.Messages) == 0 {
+			break
+		}
+
+		history = append(history, batch.Messages...)
+		fromMessageId = batch.Messages[len(batch.Messages)-1].Id
 	}
+
+	messagesIds := getMessagesIds(history)
+	readMessages(conn.Client, chatId, messagesIds)
 
 	var messages []string
-	for _, msg := range slices.Backward(history.Messages) {
+	for _, msg := range slices.Backward(history) {
 		from := getUserName(conn, msg)
 		formatMsg := processMessages(msg, from)
 		messages = append(messages, formatMsg)
@@ -80,4 +91,34 @@ func processMessages(msg *tdlib.Message, from string) string {
 	}
 
 	return result
+}
+
+func closeChat(client *tdlib.Client, chatId int64) error {
+	_, err := client.CloseChat(context.Background(), &tdlib.CloseChatRequest{ChatId: chatId})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getMessagesIds(messages []*tdlib.Message) []int64 {
+	ids := make([]int64, len(messages))
+
+	for idx, msg := range messages {
+		ids[idx] = msg.Id
+	}
+
+	return ids
+}
+
+func readMessages(client *tdlib.Client, chatId int64, messageIds []int64) error {
+	_, err := client.ViewMessages(context.Background(), &tdlib.ViewMessagesRequest{
+		ChatId:     chatId,
+		MessageIds: messageIds,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

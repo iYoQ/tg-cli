@@ -1,13 +1,11 @@
 package view
 
 import (
-	"context"
 	"fmt"
 	"tg-cli/exchange"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -84,11 +82,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) openChatCmd() tea.Cmd {
 	return func() tea.Msg {
-		_, err := m.conn.Client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: m.chatId})
-		if err != nil {
-			return errMsg(err)
-		}
-
 		history, err := getChatHistory(m.conn, m.chatId)
 		if err != nil {
 			return errMsg(err)
@@ -106,7 +99,10 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 				formatMsg := processMessages(msg, from)
 				updateMsg := tdMessageMsg(formatMsg)
 
-				if err := readMessage(m.conn.Client, msg.ChatId, msg.Id); err != nil {
+				messageIds := make([]int64, 1)
+				messageIds[0] = msg.Id
+
+				if err := readMessages(m.conn.Client, msg.ChatId, messageIds); err != nil {
 					return errMsg(err)
 				}
 
@@ -115,26 +111,4 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 		}
 		return nil
 	}
-}
-
-func closeChat(client *tdlib.Client, chatId int64) error {
-	_, err := client.CloseChat(context.Background(), &tdlib.CloseChatRequest{ChatId: chatId})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func readMessage(client *tdlib.Client, chatId int64, messageId int64) error {
-	var messageIds []int64
-	messageIds = append(messageIds, messageId)
-	_, err := client.ViewMessages(context.Background(), &tdlib.ViewMessagesRequest{
-		ChatId:     chatId,
-		MessageIds: messageIds,
-	})
-	if err != nil {
-		return err
-	}
-	return nil
 }

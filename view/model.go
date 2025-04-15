@@ -21,6 +21,7 @@ const (
 const (
 	historyLength int32 = 50
 	chatLength    int32 = 50
+	pageSize      int32 = 50
 )
 
 var (
