@@ -15,6 +15,10 @@ const (
 	chatView
 )
 
+var (
+	senders = make(map[int64]string)
+)
+
 type errMsg error
 type chatListMsg []*tdlib.Chat
 type chatHistoryMsg []string
@@ -54,6 +58,7 @@ func (m model) Init() tea.Cmd {
 			if err == nil {
 				results = append(results, chat)
 			}
+			senders[id] = chat.Title
 		}
 		return chatListMsg(results)
 	}

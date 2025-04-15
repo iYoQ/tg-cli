@@ -35,7 +35,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.Type {
 			case tea.KeyEnter:
 				go exchange.SendText(m.conn.Client, m.chatId, m.input)
-				m.messages = append(m.messages, fmt.Sprintf("You: %s", m.input))
+				if m.chatId != m.conn.GetMe().Id {
+					m.messages = append(m.messages, fmt.Sprintf("You: %s", m.input))
+				}
 				m.input = ""
 			case tea.KeyBackspace:
 				if len(m.input) > 0 {
@@ -87,7 +89,7 @@ func (m model) openChatCmd() tea.Cmd {
 		for i := len(history.Messages) - 1; i >= 0; i-- {
 			msg := history.Messages[i]
 			if text, ok := msg.Content.(*tdlib.MessageText); ok {
-				from := fmt.Sprintf("[%d]", msg.SenderId.(*tdlib.MessageSenderUser).UserId)
+				from := fmt.Sprintf("[%s]", senders[msg.SenderId.(*tdlib.MessageSenderUser).UserId])
 				messages = append(messages, fmt.Sprintf("%s %s", from, text.Text.Text))
 			}
 		}
@@ -100,7 +102,7 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
 				if content, ok := msg.Content.(*tdlib.MessageText); ok {
-					from := fmt.Sprintf("[%d]", msg.SenderId.(*tdlib.MessageSenderUser).UserId)
+					from := fmt.Sprintf("[%s]", senders[msg.SenderId.(*tdlib.MessageSenderUser).UserId])
 					return tdMessageMsg(fmt.Sprintf("%s %s", from, content.Text.Text))
 				}
 			}
