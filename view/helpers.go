@@ -43,11 +43,18 @@ func getChatHistory(conn *connection.Connection, chatId int64) ([]string, error)
 func getUserName(conn *connection.Connection, msg *tdlib.Message) string {
 	var userLastName string
 	var from string
+	var senderId int64
 
-	userId := msg.SenderId.(*tdlib.MessageSenderUser).UserId
-	userName := senders[userId]
+	switch sender := msg.SenderId.(type) {
+	case *tdlib.MessageSenderUser:
+		senderId = sender.UserId
+	case *tdlib.MessageSenderChat:
+		senderId = sender.ChatId
+	}
+
+	userName := senders[senderId]
 	if userName == "" {
-		unkUser, err := conn.Client.GetUser(context.Background(), &tdlib.GetUserRequest{UserId: userId})
+		unkUser, err := conn.Client.GetUser(context.Background(), &tdlib.GetUserRequest{UserId: senderId})
 		if err != nil {
 			userName = "unk"
 		} else {
