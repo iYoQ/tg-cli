@@ -12,16 +12,7 @@ func (m model) View() string {
 
 	switch m.state {
 	case chatListView:
-		var b strings.Builder
-		b.WriteString("Select a chat:\n\n")
-		for i, c := range m.chats {
-			cursor := " "
-			if i == m.selected {
-				cursor = ">"
-			}
-			fmt.Fprintf(&b, "%s %s (%d)\n", cursor, c.Title, c.Id)
-		}
-		return b.String()
+		return m.chatList.View()
 
 	case chatView:
 		var b strings.Builder

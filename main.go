@@ -39,7 +39,7 @@ func start() error {
 
 	p := tea.NewProgram(view.NewModel(conn))
 	if _, err := p.Run(); err != nil {
-		return nil
+		return err
 	}
 
 	return nil

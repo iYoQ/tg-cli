@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"tg-cli/exchange"
 
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
@@ -15,18 +16,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.state {
 		case chatListView:
 			switch msg.String() {
-			case "up":
-				if m.selected > 0 {
-					m.selected--
-				}
-			case "down":
-				if m.selected < len(m.chats)-1 {
-					m.selected++
-				}
 			case "enter":
-				m.chatId = m.chats[m.selected].Id
-				m.state = chatView
-				return m, tea.Batch(m.openChatCmd(), m.listenUpdatesCmd())
+				if m.chatList.FilterState() != list.Filtering {
+					item, ok := m.chatList.SelectedItem().(chatItem)
+					if ok {
+						m.chatId = item.id
+						m.state = chatView
+						return m, tea.Batch(m.openChatCmd(), m.listenUpdatesCmd())
+					}
+				}
 			case "ctrl+c", "q":
 				return m, tea.Quit
 			}
@@ -51,11 +49,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
+
+	case tea.WindowSizeMsg:
+		m.chatList.SetSize(msg.Width, msg.Height)
+
 	case errMsg:
 		m.err = msg
 
 	case chatListMsg:
-		m.chats = msg
+		items := make([]list.Item, 0, len(msg))
+		for _, chat := range msg {
+			items = append(items, chatItem{title: chat.Title, id: chat.Id})
+		}
+		m.chatList.SetItems(items)
 
 	case chatHistoryMsg:
 		m.messages = msg
@@ -63,6 +69,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tdMessageMsg:
 		m.messages = append(m.messages, string(msg))
 		return m, m.listenUpdatesCmd()
+	}
+
+	var cmd tea.Cmd
+	m.chatList, cmd = m.chatList.Update(msg)
+	if m.chatList.FilterState() == list.Filtering {
+		return m, cmd
 	}
 
 	return m, nil
