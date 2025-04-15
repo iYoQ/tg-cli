@@ -11,21 +11,23 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
+type Me struct {
+	Id        int64
+	FirstName string
+	LastName  string
+}
+
 type Connection struct {
 	Client         *tdlib.Client
 	UpdatesChannel chan *tdlib.Message
-	ctx            context.Context
-	cancel         context.CancelFunc
+	me             Me
 }
 
 func NewConnection() *Connection {
 	updatesChannel := make(chan *tdlib.Message)
-	ctx, cancel := context.WithCancel(context.Background())
 	return &Connection{
 		Client:         nil,
 		UpdatesChannel: updatesChannel,
-		ctx:            ctx,
-		cancel:         cancel,
 	}
 }
 
@@ -33,26 +35,31 @@ func (conn *Connection) SetClient(client *tdlib.Client) {
 	conn.Client = client
 }
 
+func (conn *Connection) SetMe(tdlibMe *tdlib.User) Me {
+	me := Me{
+		Id:        tdlibMe.Id,
+		FirstName: tdlibMe.FirstName,
+		LastName:  tdlibMe.LastName,
+	}
+	conn.me = me
+	return me
+}
+
+func (conn Connection) GetMe() Me {
+	return conn.me
+}
+
 func (conn *Connection) CreateCallbackHandler(result tdlib.Type) {
 	go func() {
-		select {
-		case <-conn.ctx.Done():
-			return
-		default:
-			select {
-			case <-conn.ctx.Done():
-				return
-			default:
-				switch update := result.(type) {
-				case *tdlib.UpdateNewMessage:
-					if conn.UpdatesChannel != nil {
-						conn.UpdatesChannel <- update.Message
-					} else {
-						log.Println("channel don't setup, check connection.UpdateChannel")
-					}
-				}
+		switch update := result.(type) {
+		case *tdlib.UpdateNewMessage:
+			if conn.UpdatesChannel != nil {
+				conn.UpdatesChannel <- update.Message
+			} else {
+				log.Println("channel don't setup, check connection.UpdateChannel")
 			}
 		}
+
 	}()
 }
 
@@ -62,13 +69,6 @@ func (conn *Connection) Close() {
 	}
 
 	log.Println("\nShutting down TDLib client...")
-
-	conn.cancel()
-
-	if conn.UpdatesChannel != nil {
-		close(conn.UpdatesChannel)
-		conn.UpdatesChannel = nil
-	}
 
 	ok, err := conn.Client.Close(context.Background())
 	if err != nil {

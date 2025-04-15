@@ -18,7 +18,7 @@ type Config struct {
 	apiHash string
 }
 
-func Init() error {
+func start() error {
 	cfg := loadParams()
 
 	conn := connection.NewConnection()
@@ -33,7 +33,7 @@ func Init() error {
 		}
 	}()
 
-	if err := Auth(cfg, conn); err != nil {
+	if err := auth(cfg, conn); err != nil {
 		return err
 	}
 
@@ -80,7 +80,7 @@ func loadParams() Config {
 }
 
 func main() {
-	if err := Init(); err != nil {
+	if err := start(); err != nil {
 		log.Fatalf("Initialization failed: %s", err)
 	}
 }
