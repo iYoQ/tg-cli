@@ -32,10 +32,9 @@ func getChatHistory(conn *connection.Connection, chatId int64) ([]string, error)
 
 	var messages []string
 	for _, msg := range slices.Backward(history.Messages) {
-		if text, ok := msg.Content.(*tdlib.MessageText); ok {
-			from := getUserName(conn, msg)
-			messages = append(messages, fmt.Sprintf("%s %s", from, text.Text.Text))
-		}
+		from := getUserName(conn, msg)
+		formatMsg := processMessages(msg, from)
+		messages = append(messages, formatMsg)
 	}
 
 	return messages, nil
@@ -62,4 +61,16 @@ func getUserName(conn *connection.Connection, msg *tdlib.Message) string {
 	}
 
 	return from
+}
+
+func processMessages(msg *tdlib.Message, from string) string {
+	var result string
+	switch content := msg.Content.(type) {
+	case *tdlib.MessageText:
+		result = fmt.Sprintf("%s %s", from, content.Text.Text)
+	case *tdlib.MessagePhoto, *tdlib.MessageVideo, *tdlib.MessageAudio:
+		result = fmt.Sprintf("%s [media content]", from)
+	}
+
+	return result
 }

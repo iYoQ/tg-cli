@@ -81,6 +81,6 @@ func loadParams() Config {
 
 func main() {
 	if err := start(); err != nil {
-		log.Fatalf("Initialization failed: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 }

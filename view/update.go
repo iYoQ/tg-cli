@@ -102,14 +102,15 @@ func (m model) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
-				switch content := msg.Content.(type) {
-				case *tdlib.MessageText:
-					from := getUserName(m.conn, msg)
-					if err := readMessage(m.conn.Client, msg.ChatId, msg.Id); err != nil {
-						return errMsg(err)
-					}
-					return tdMessageMsg(fmt.Sprintf("%s %s", from, content.Text.Text))
+				from := getUserName(m.conn, msg)
+				formatMsg := processMessages(msg, from)
+				updateMsg := tdMessageMsg(formatMsg)
+
+				if err := readMessage(m.conn.Client, msg.ChatId, msg.Id); err != nil {
+					return errMsg(err)
 				}
+
+				return updateMsg
 			}
 		}
 		return nil
