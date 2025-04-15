@@ -7,9 +7,9 @@ import (
 	"runtime/debug"
 	"strconv"
 	"tg-cli/connection"
-	"tg-cli/console"
+	"tg-cli/view"
 
-	"github.com/chzyer/readline"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
 )
 
@@ -18,7 +18,7 @@ type Config struct {
 	apiHash string
 }
 
-func Init() error {
+func start() error {
 	cfg := loadParams()
 
 	conn := connection.NewConnection()
@@ -33,23 +33,15 @@ func Init() error {
 		}
 	}()
 
-	if err := Auth(cfg, conn); err != nil {
+	if err := auth(cfg, conn); err != nil {
 		return err
 	}
 
-	reader, err := readline.NewEx(&readline.Config{
-		Prompt:          ">> ",
-		InterruptPrompt: "back",
-		EOFPrompt:       "exit",
-	})
-
-	if err != nil {
-		log.Printf("failed to initialize readline: %v", err)
+	app := tea.NewProgram(view.NewModel(conn), tea.WithAltScreen())
+	if _, err := app.Run(); err != nil {
 		return err
 	}
-	defer reader.Close()
 
-	console.Start(conn, reader)
 	return nil
 }
 
@@ -88,7 +80,7 @@ func loadParams() Config {
 }
 
 func main() {
-	if err := Init(); err != nil {
-		log.Fatalf("Initialization failed: %s", err)
+	if err := start(); err != nil {
+		log.Fatalf("Error: %s", err)
 	}
 }

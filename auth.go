@@ -9,7 +9,7 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func Auth(cfg Config, conn *connection.Connection) error {
+func auth(cfg Config, conn *connection.Connection) error {
 	tdlibParameters := &tdlib.SetTdlibParametersRequest{
 		UseTestDc:           false,
 		DatabaseDirectory:   filepath.Join("./", "database"),
@@ -69,11 +69,13 @@ func Auth(cfg Config, conn *connection.Connection) error {
 		log.Printf("TDLib verson supported by the library (%s) is not the same as TDLIB version (%s)", tdlib.TDLIB_VERSION, commitOption.(*tdlib.OptionValueString).Value)
 	}
 
-	me, err := client.GetMe(context.Background())
+	tdlibMe, err := client.GetMe(context.Background())
 	if err != nil {
 		log.Printf("GetMe error: %s", err)
 		return err
 	}
+
+	me := conn.SetMe(tdlibMe)
 
 	log.Printf("Me: %s %s", me.FirstName, me.LastName)
 

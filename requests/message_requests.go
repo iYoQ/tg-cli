@@ -1,4 +1,4 @@
-package exchange
+package requests
 
 import (
 	"context"
