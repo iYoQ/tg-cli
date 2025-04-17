@@ -1,8 +1,9 @@
-package view
+package app
 
 import (
 	"fmt"
 
+	tea "github.com/charmbracelet/bubbletea"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -30,4 +31,10 @@ func getMessagesIds(messages []*tdlib.Message) []int64 {
 	}
 
 	return ids
+}
+
+func changeView(model tea.Model, newView viewState) (tea.Model, tea.Cmd) {
+	return model, tea.Cmd(func() tea.Msg {
+		return changeStateMsg{newState: newView}
+	})
 }
