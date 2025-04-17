@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	tdlib "github.com/zelenin/go-tdlib/client"
@@ -68,15 +67,20 @@ func getUserName(client *tdlib.Client, msg *tdlib.Message) string {
 	if userName == "" {
 		unkUser, err := client.GetUser(context.Background(), &tdlib.GetUserRequest{UserId: senderId})
 		if err != nil {
-			userName = "unk"
+			userName = unkSenderStyle.Render(unknownIdentifier)
+			from = userName
 		} else {
 			userName, userLastName = unkUser.FirstName, unkUser.LastName
+			if userLastName == "" {
+				senders[senderId] = senderStyle.Render(userName)
+			} else {
+				senders[senderId] = senderStyle.Render(userName, userLastName)
+			}
 		}
 	}
-	if userLastName == "" {
-		from = fmt.Sprintf("[%s]", userName)
-	} else {
-		from = fmt.Sprintf("[%s %s]", userName, userLastName)
+
+	if from == "" {
+		from = senders[senderId]
 	}
 
 	return from

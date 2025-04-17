@@ -8,19 +8,11 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-type chatModel struct {
-	viewport viewport.Model
-	messages []string
-	chatId   int64
-	conn     *connection.Connection
-	input    string
-	err      errMsg
-}
-
 func newChatModel(width int, height int, chatId int64, conn *connection.Connection) chatModel {
-	vp := viewport.New(width-2, height-7)
+	vp := viewport.New(width, height)
 	vp.SetContent("")
 
 	return chatModel{
@@ -42,9 +34,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			go requests.SendText(m.conn.Client, m.chatId, m.input)
-			if m.chatId != m.conn.GetMe().Id {
-				m.messages = append(m.messages, fmt.Sprintf("You: %s", m.input))
-			}
+
+			m.messages = append(m.messages, fmt.Sprintf("%s: %s", senders[m.conn.GetMe().Id], m.input))
 			m.input = ""
 		case tea.KeyBackspace:
 			if len(m.input) > 0 {
@@ -58,8 +49,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.WindowSizeMsg:
-		m.viewport.Width = msg.Width - 2
-		m.viewport.Height = msg.Height - 7
+		m.viewport.Width = msg.Width
+		m.viewport.Height = msg.Height
 
 	case tdMessageMsg:
 		m.messages = append(m.messages, string(msg))
@@ -71,6 +62,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	m.viewport.SetContent(m.renderMessages())
+	m.viewport.GotoBottom()
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
@@ -81,6 +73,9 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
+				if msg.SenderId.(*tdlib.MessageSenderUser).UserId == m.conn.GetMe().Id {
+					return nil
+				}
 				from := getUserName(m.conn.Client, msg)
 				formatMsg := processMessages(msg, from)
 				updateMsg := tdMessageMsg(formatMsg)
@@ -115,14 +110,15 @@ func (m chatModel) View() string {
 		return fmt.Sprintf("Error: %v", m.err)
 	}
 
-	return m.viewport.View()
+	return fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+m.input))
 }
 
 func (m chatModel) renderMessages() string {
 	var b strings.Builder
 	for _, msg := range m.messages {
+
 		b.WriteString(msg + "\n")
 	}
-	b.WriteString("\n> " + m.input)
+
 	return b.String()
 }

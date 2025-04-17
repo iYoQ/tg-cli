@@ -11,9 +11,9 @@ func processMessages(msg *tdlib.Message, from string) string {
 	var result string
 	switch content := msg.Content.(type) {
 	case *tdlib.MessageText:
-		result = fmt.Sprintf("%s %s", from, content.Text.Text)
+		result = fmt.Sprintf("%s: %s", from, content.Text.Text)
 	case *tdlib.MessagePhoto, *tdlib.MessageVideo, *tdlib.MessageAudio:
-		result = fmt.Sprintf("%s [media content]", from)
+		result = fmt.Sprintf("%s: [media content]", from)
 	}
 
 	return result

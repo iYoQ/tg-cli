@@ -7,55 +7,15 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-type viewState int
-
-const (
-	chatListView viewState = iota
-	chatView
-)
-
-const (
-	historyLength int32 = 50
-	chatLength    int32 = 50
-	pageSize      int32 = 50
-)
-
-var (
-	docStyle = lipgloss.NewStyle().Margin(1, 2)
-	senders  = make(map[int64]string)
-)
-
-type errMsg error
-type chatListMsg []*tdlib.Chat
-type chatHistoryMsg []string
-type tdMessageMsg string
-type changeStateMsg struct {
-	newState viewState
-}
-
-type chatItem struct {
-	title string
-	id    int64
-}
-
-func (c chatItem) Title() string       { return c.title }
-func (c chatItem) Description() string { return fmt.Sprintf("ID: %d", c.id) }
-func (c chatItem) FilterValue() string { return c.title }
-
-type rootModel struct {
-	conn     *connection.Connection
-	state    viewState
-	err      error
-	chatList list.Model
-	chat     chatModel
-}
-
 func NewRootModel(conn *connection.Connection) rootModel {
-	chatList := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = listSelectedStyle
+	delegate.Styles.SelectedDesc = listSelectedStyle
+
+	chatList := list.New([]list.Item{}, delegate, 0, 0)
 	chatList.SetStatusBarItemName("chat", "chats")
 	chatList.SetShowTitle(false)
 
@@ -80,8 +40,9 @@ func (m rootModel) Init() tea.Cmd {
 			if err == nil {
 				results = append(results, chat)
 			}
-			senders[id] = chat.Title
+			senders[id] = senderStyle.Render(chat.Title)
 		}
+		senders[m.conn.GetMe().Id] = meStyle.Render(myIdentifier)
 		return chatListMsg(results)
 	}
 }
@@ -89,10 +50,9 @@ func (m rootModel) Init() tea.Cmd {
 func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-
 		switch msg.String() {
 		case "enter":
-			if m.chatList.FilterState() != list.Filtering {
+			if m.chatList.FilterState() != list.Filtering && m.state == chatListView {
 				item := m.chatList.SelectedItem().(chatItem)
 
 				m.state = chatView
@@ -125,7 +85,6 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-
 	switch m.state {
 	case chatListView:
 		updatedModel, newCmd := m.chatList.Update(msg)
@@ -154,5 +113,4 @@ func (m rootModel) View() string {
 	}
 
 	return "Loading..."
-
 }
