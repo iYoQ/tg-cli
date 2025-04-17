@@ -3,9 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
 	"tg-cli/connection"
-	"tg-cli/requests"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -51,9 +49,6 @@ func (c chatItem) FilterValue() string { return c.title }
 type rootModel struct {
 	conn     *connection.Connection
 	state    viewState
-	chatId   int64
-	messages []string
-	input    string
 	err      error
 	chatList list.Model
 	chat     chatModel
@@ -94,46 +89,25 @@ func (m rootModel) Init() tea.Cmd {
 func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch m.state {
-		case chatListView:
-			switch msg.String() {
-			case "enter":
-				if m.chatList.FilterState() != list.Filtering {
-					item, ok := m.chatList.SelectedItem().(chatItem)
-					if ok {
-						m.chatId = item.id
-						m.state = chatView
-						m.chat = newChatModel(m.chatList.Width(), m.chatList.Height())
-						chatCmd := m.chat.Init()
-						return m, chatCmd
-						// return m, tea.Batch(m.openChatCmd(), m.listenUpdatesCmd())
-					}
-				}
-			case "ctrl+c", "q":
+
+		switch msg.String() {
+		case "enter":
+			if m.chatList.FilterState() != list.Filtering {
+				item := m.chatList.SelectedItem().(chatItem)
+
+				m.state = chatView
+				m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), item.id, m.conn)
+				chatCmd := m.chat.Init()
+				return m, chatCmd
+			}
+		case "ctrl+c", "q":
+			if m.state == chatListView {
 				return m, tea.Quit
 			}
-
-		case chatView:
-			switch msg.Type {
-			case tea.KeyEnter:
-				go requests.SendText(m.conn.Client, m.chatId, m.input)
-				if m.chatId != m.conn.GetMe().Id {
-					m.messages = append(m.messages, fmt.Sprintf("You: %s", m.input))
-				}
-				m.input = ""
-			case tea.KeyBackspace:
-				if len(m.input) > 0 {
-					m.input = m.input[:len(m.input)-1]
-				}
-			case tea.KeyCtrlC:
-				m.state = chatListView
-				closeChat(m.conn.Client, m.chatId)
-				return m, nil
-			case tea.KeyRunes:
-				m.input += msg.String()
-			}
-			return m, nil
 		}
+
+	case changeStateMsg:
+		m.state = msg.newState
 
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
@@ -148,55 +122,22 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			items = append(items, chatItem{title: chat.Title, id: chat.Id})
 		}
 		m.chatList.SetItems(items)
-
-	case chatHistoryMsg:
-		m.messages = msg
-
-	case tdMessageMsg:
-		m.messages = append(m.messages, string(msg))
-		return m, m.listenUpdatesCmd()
 	}
 
 	var cmd tea.Cmd
-	m.chatList, cmd = m.chatList.Update(msg)
-	if m.chatList.FilterState() == list.Filtering {
-		return m, cmd
+
+	switch m.state {
+	case chatListView:
+		updatedModel, newCmd := m.chatList.Update(msg)
+		m.chatList = updatedModel
+		cmd = newCmd
+	case chatView:
+		updatedModel, newCmd := m.chat.Update(msg)
+		m.chat = updatedModel.(chatModel)
+		cmd = newCmd
 	}
 
-	return m, nil
-}
-
-func (m rootModel) openChatCmd() tea.Cmd {
-	return func() tea.Msg {
-		history, err := getChatHistory(m.conn.Client, m.chatId)
-		if err != nil {
-			return errMsg(err)
-		}
-
-		return chatHistoryMsg(history)
-	}
-}
-
-func (m rootModel) listenUpdatesCmd() tea.Cmd {
-	return func() tea.Msg {
-		for msg := range m.conn.UpdatesChannel {
-			if msg.ChatId == m.chatId {
-				from := getUserName(m.conn.Client, msg)
-				formatMsg := processMessages(msg, from)
-				updateMsg := tdMessageMsg(formatMsg)
-
-				messageIds := make([]int64, 1)
-				messageIds[0] = msg.Id
-
-				if err := readMessages(m.conn.Client, msg.ChatId, messageIds); err != nil {
-					return errMsg(err)
-				}
-
-				return updateMsg
-			}
-		}
-		return nil
-	}
+	return m, cmd
 }
 
 func (m rootModel) View() string {
@@ -209,14 +150,7 @@ func (m rootModel) View() string {
 		return docStyle.Render(m.chatList.View())
 
 	case chatView:
-		var b strings.Builder
-
-		for _, msg := range m.messages {
-			b.WriteString(msg + "\n")
-		}
-
-		b.WriteString("\n> " + m.input)
-		return b.String()
+		return m.chat.View()
 	}
 
 	return "Loading..."
