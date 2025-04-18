@@ -9,7 +9,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/muesli/reflow/wordwrap"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -36,8 +35,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			go requests.SendText(m.conn.Client, m.chatId, m.input)
-
-			m.messages = append(m.messages, fmt.Sprintf("[%s] %s: %s", time.Now().Format("2006-01-02 15:04:05"), senders[m.conn.GetMe().Id], m.input))
+			message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()), m.viewport.Width)
+			m.messages = append(m.messages, message)
 			m.input = ""
 		case tea.KeyBackspace:
 			if len(m.input) > 0 {
@@ -53,6 +52,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.viewport.Width = msg.Width
 		m.viewport.Height = msg.Height
+		// return m, m.listenUpdatesCmd()
 
 	case tdMessageMsg:
 		m.messages = append(m.messages, string(msg))
@@ -71,6 +71,16 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func (m chatModel) View() string {
+	if m.err != nil {
+		return fmt.Sprintf("Error: %v", m.err)
+	}
+
+	newStr := fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+m.input))
+
+	return newStr
+}
+
 func (m chatModel) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
@@ -79,7 +89,7 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 					return nil
 				}
 				from := getUserName(m.conn.Client, msg)
-				formatMsg := processMessages(msg, from)
+				formatMsg := processMessages(msg, from, m.viewport.Width-2)
 				updateMsg := tdMessageMsg(formatMsg)
 
 				messageIds := make([]int64, 1)
@@ -98,21 +108,13 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 
 func (m chatModel) openChatCmd() tea.Cmd {
 	return func() tea.Msg {
-		history, err := getChatHistory(m.conn.Client, m.chatId)
+		history, err := getChatHistory(m.conn.Client, m.chatId, m.viewport.Width)
 		if err != nil {
 			return errMsg(err)
 		}
 
 		return chatHistoryMsg(history)
 	}
-}
-
-func (m chatModel) View() string {
-	if m.err != nil {
-		return fmt.Sprintf("Error: %v", m.err)
-	}
-
-	return wordwrap.String(fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+m.input)), int(float64(m.viewport.Width)/1.2))
 }
 
 func (m chatModel) renderMessages() string {

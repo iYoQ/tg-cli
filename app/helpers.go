@@ -5,18 +5,19 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/reflow/wordwrap"
 	tdlib "github.com/zelenin/go-tdlib/client"
+	"golang.org/x/term"
 )
 
-func processMessages(msg *tdlib.Message, from string) string {
+func processMessages(msg *tdlib.Message, from string, width int) string {
 	var result string
 
-	dt := parseDate(msg.Date)
 	switch content := msg.Content.(type) {
 	case *tdlib.MessageText:
-		result = fmt.Sprintf("[%s] %s: %s", dt, from, content.Text.Text)
+		result = formatMessage(content.Text.Text, from, msg.Date, width)
 	case *tdlib.MessagePhoto, *tdlib.MessageVideo, *tdlib.MessageAudio:
-		result = fmt.Sprintf("%s: [media content]", from)
+		result = formatMessage("[media content]", from, msg.Date, width)
 	}
 
 	return result
@@ -45,4 +46,16 @@ func changeView(model tea.Model, newView viewState) (tea.Model, tea.Cmd) {
 func parseDate(date int32) string {
 	tm := time.Unix(int64(date), 0)
 	return fmt.Sprint(tm.Format("2006-01-02 15:04:05"))
+}
+
+func formatMessage(msg string, from string, unixDate int32, width int) string {
+	dt := parseDate(unixDate)
+
+	widthT, _, err := term.GetSize(0)
+	if err != nil {
+		widthT = 100
+	}
+
+	formattedMessage := wordwrap.String(fmt.Sprintf("[%s] %s: %s", dt, from, msg), min(width, widthT))
+	return formattedMessage
 }

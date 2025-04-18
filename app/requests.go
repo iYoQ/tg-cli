@@ -7,7 +7,7 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func getChatHistory(client *tdlib.Client, chatId int64) ([]string, error) {
+func getChatHistory(client *tdlib.Client, chatId int64, width int) ([]string, error) {
 	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func getChatHistory(client *tdlib.Client, chatId int64) ([]string, error) {
 	var messages []string
 	for _, msg := range slices.Backward(history) {
 		from := getUserName(client, msg)
-		formatMsg := processMessages(msg, from)
+		formatMsg := processMessages(msg, from, width)
 		messages = append(messages, formatMsg)
 	}
 
