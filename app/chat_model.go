@@ -47,6 +47,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return changeView(m, chatListView)
 		case tea.KeyRunes:
 			m.input += msg.String()
+		case tea.KeyCtrlDown:
+			m.input += "\n"
 		}
 
 	case tea.WindowSizeMsg:
