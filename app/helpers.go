@@ -51,11 +51,14 @@ func parseDate(date int32) string {
 func formatMessage(msg string, from string, unixDate int32, width int) string {
 	dt := parseDate(unixDate)
 
-	widthT, _, err := term.GetSize(0)
-	if err != nil {
-		widthT = 100
-	}
+	return fmt.Sprintf("[%s] %s: %s", dt, from, msg)
+}
 
-	formattedMessage := wordwrap.String(fmt.Sprintf("[%s] %s: %s", dt, from, msg), min(width, widthT))
+func wrapMessage(msg string) string {
+	termWidth, _, err := term.GetSize(0)
+	if err != nil {
+		termWidth = maxScreenChat
+	}
+	formattedMessage := wordwrap.String(msg, min(termWidth, maxScreenChat))
 	return formattedMessage
 }

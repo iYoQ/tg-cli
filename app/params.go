@@ -21,6 +21,7 @@ const (
 	historyLength int32 = 50
 	chatLength    int32 = 50
 	pageSize      int32 = 50
+	maxScreenChat int   = 100
 )
 
 const (
@@ -29,8 +30,8 @@ const (
 )
 
 var (
-	margStyle = lipgloss.NewStyle().Margin(1, 2)
-	// chatStyle         = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#b39ddb"))
+	margStyle         = lipgloss.NewStyle().Margin(1, 2)
+	chatStyle         = lipgloss.NewStyle().Padding(1, 2)
 	inputStyle        = lipgloss.NewStyle().Background(lipgloss.Color("253")).Foreground(lipgloss.Color("232")).PaddingLeft(2).PaddingRight(2)
 	listSelectedStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, false, true).BorderForeground(lipgloss.Color("#b39ddb")).Foreground(lipgloss.Color("#b39ddb")).Padding(0, 0, 0, 1)
 	meStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("#b39ddb"))

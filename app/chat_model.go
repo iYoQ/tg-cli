@@ -52,7 +52,6 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.viewport.Width = msg.Width
 		m.viewport.Height = msg.Height
-		// return m, m.listenUpdatesCmd()
 
 	case tdMessageMsg:
 		m.messages = append(m.messages, string(msg))
@@ -76,9 +75,11 @@ func (m chatModel) View() string {
 		return fmt.Sprintf("Error: %v", m.err)
 	}
 
-	newStr := fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+m.input))
+	wrappedInput := wrapMessage(m.input)
 
-	return newStr
+	newStr := fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+wrappedInput))
+
+	return chatStyle.Render(newStr)
 }
 
 func (m chatModel) listenUpdatesCmd() tea.Cmd {
@@ -120,7 +121,9 @@ func (m chatModel) openChatCmd() tea.Cmd {
 func (m chatModel) renderMessages() string {
 	var b strings.Builder
 	for _, msg := range m.messages {
-		b.WriteString(msg + "\n")
+
+		wrappedMessage := wrapMessage(msg)
+		b.WriteString(wrappedMessage + "\n")
 	}
 
 	return b.String()
