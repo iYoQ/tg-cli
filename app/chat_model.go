@@ -9,7 +9,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
-	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 func newChatModel(width int, height int, chatId int64, conn *connection.Connection) chatModel {
@@ -35,8 +34,10 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			go requests.SendText(m.conn.Client, m.chatId, m.input)
-			message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-			m.messages = append(m.messages, message)
+			if m.chatId != m.conn.GetMe().Id {
+				message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+				m.messages = append(m.messages, message)
+			}
 			m.input = ""
 		case tea.KeyBackspace:
 			if len(m.input) > 0 {
@@ -88,11 +89,6 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
-				if sender, ok := msg.SenderId.(*tdlib.MessageSenderUser); ok {
-					if sender.UserId == m.conn.GetMe().Id {
-						continue
-					}
-				}
 				from := getUserName(m.conn.Client, msg)
 				formatMsg := processMessages(msg, from)
 				updateMsg := tdMessageMsg(formatMsg)
