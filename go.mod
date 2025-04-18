@@ -5,9 +5,11 @@ go 1.24.2
 require (
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.4
-	github.com/joho/godotenv v1.5.1
-	github.com/zelenin/go-tdlib v1.0.0-beta1
 	github.com/charmbracelet/lipgloss v1.1.0
+	github.com/joho/godotenv v1.5.1
+	github.com/muesli/reflow v0.3.0
+	github.com/zelenin/go-tdlib v1.0.0-beta1
+	golang.org/x/term v0.31.0
 )
 
 require (
@@ -29,6 +31,6 @@ require (
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.3.8 // indirect
 )

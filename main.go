@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime/debug"
 	"strconv"
+	"tg-cli/app"
 	"tg-cli/connection"
-	"tg-cli/view"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
@@ -37,7 +37,7 @@ func start() error {
 		return err
 	}
 
-	app := tea.NewProgram(view.NewModel(conn), tea.WithAltScreen())
+	app := tea.NewProgram(app.NewRootModel(conn), tea.WithAltScreen())
 	if _, err := app.Run(); err != nil {
 		return err
 	}

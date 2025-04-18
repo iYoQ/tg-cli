@@ -1,14 +1,13 @@
-package view
+package app
 
 import (
 	"context"
-	"fmt"
 	"slices"
 
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func getChatHistory(client *tdlib.Client, chatId int64) ([]string, error) {
+func getChatHistory(client *tdlib.Client, chatId int64, width int) ([]string, error) {
 	_, err := client.OpenChat(context.Background(), &tdlib.OpenChatRequest{ChatId: chatId})
 	if err != nil {
 		return nil, err
@@ -45,7 +44,7 @@ func getChatHistory(client *tdlib.Client, chatId int64) ([]string, error) {
 	var messages []string
 	for _, msg := range slices.Backward(history) {
 		from := getUserName(client, msg)
-		formatMsg := processMessages(msg, from)
+		formatMsg := processMessages(msg, from, width)
 		messages = append(messages, formatMsg)
 	}
 
@@ -68,15 +67,20 @@ func getUserName(client *tdlib.Client, msg *tdlib.Message) string {
 	if userName == "" {
 		unkUser, err := client.GetUser(context.Background(), &tdlib.GetUserRequest{UserId: senderId})
 		if err != nil {
-			userName = "unk"
+			userName = unkSenderStyle.Render(unknownIdentifier)
+			from = userName
 		} else {
 			userName, userLastName = unkUser.FirstName, unkUser.LastName
+			if userLastName == "" {
+				senders[senderId] = senderStyle.Render(userName)
+			} else {
+				senders[senderId] = senderStyle.Render(userName, userLastName)
+			}
 		}
 	}
-	if userLastName == "" {
-		from = fmt.Sprintf("[%s]", userName)
-	} else {
-		from = fmt.Sprintf("[%s %s]", userName, userLastName)
+
+	if from == "" {
+		from = senders[senderId]
 	}
 
 	return from
