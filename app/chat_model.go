@@ -35,7 +35,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyEnter:
 			go requests.SendText(m.conn.Client, m.chatId, m.input)
-			message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()), m.viewport.Width)
+			message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 			m.messages = append(m.messages, message)
 			m.input = ""
 		case tea.KeyBackspace:
@@ -88,11 +88,13 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
 			if msg.ChatId == m.chatId {
-				if msg.SenderId.(*tdlib.MessageSenderUser).UserId == m.conn.GetMe().Id {
-					return nil
+				if sender, ok := msg.SenderId.(*tdlib.MessageSenderUser); ok {
+					if sender.UserId == m.conn.GetMe().Id {
+						continue
+					}
 				}
 				from := getUserName(m.conn.Client, msg)
-				formatMsg := processMessages(msg, from, m.viewport.Width-2)
+				formatMsg := processMessages(msg, from)
 				updateMsg := tdMessageMsg(formatMsg)
 
 				messageIds := make([]int64, 1)
@@ -111,7 +113,7 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 
 func (m chatModel) openChatCmd() tea.Cmd {
 	return func() tea.Msg {
-		history, err := getChatHistory(m.conn.Client, m.chatId, m.viewport.Width)
+		history, err := getChatHistory(m.conn.Client, m.chatId)
 		if err != nil {
 			return errMsg(err)
 		}

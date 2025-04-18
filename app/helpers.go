@@ -10,14 +10,20 @@ import (
 	"golang.org/x/term"
 )
 
-func processMessages(msg *tdlib.Message, from string, width int) string {
+func processMessages(msg *tdlib.Message, from string) string {
 	var result string
 
 	switch content := msg.Content.(type) {
 	case *tdlib.MessageText:
-		result = formatMessage(content.Text.Text, from, msg.Date, width)
-	case *tdlib.MessagePhoto, *tdlib.MessageVideo, *tdlib.MessageAudio:
-		result = formatMessage("[media content]", from, msg.Date, width)
+		result = formatMessage(content.Text.Text, from, msg.Date)
+	case *tdlib.MessagePhoto:
+		var tmpText string
+		if content.Caption != nil {
+			tmpText = fmt.Sprintf("[media content]\n%s", content.Caption.Text)
+		}
+		result = formatMessage(tmpText, from, msg.Date)
+	case *tdlib.MessageVideo, *tdlib.MessageAudio:
+		result = formatMessage("[media content]", from, msg.Date)
 	}
 
 	return result
@@ -48,7 +54,7 @@ func parseDate(date int32) string {
 	return fmt.Sprint(tm.Format("2006-01-02 15:04:05"))
 }
 
-func formatMessage(msg string, from string, unixDate int32, width int) string {
+func formatMessage(msg string, from string, unixDate int32) string {
 	dt := parseDate(unixDate)
 
 	return fmt.Sprintf("[%s] %s: %s", dt, from, msg)
