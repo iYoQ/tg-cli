@@ -5,9 +5,11 @@ import (
 	"strings"
 	"tg-cli/connection"
 	"tg-cli/requests"
+	"time"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/reflow/wordwrap"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -35,7 +37,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			go requests.SendText(m.conn.Client, m.chatId, m.input)
 
-			m.messages = append(m.messages, fmt.Sprintf("%s: %s", senders[m.conn.GetMe().Id], m.input))
+			m.messages = append(m.messages, fmt.Sprintf("[%s] %s: %s", time.Now().Format("2006-01-02 15:04:05"), senders[m.conn.GetMe().Id], m.input))
 			m.input = ""
 		case tea.KeyBackspace:
 			if len(m.input) > 0 {
@@ -110,13 +112,12 @@ func (m chatModel) View() string {
 		return fmt.Sprintf("Error: %v", m.err)
 	}
 
-	return fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+m.input))
+	return wordwrap.String(fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+m.input)), int(float64(m.viewport.Width)/1.2))
 }
 
 func (m chatModel) renderMessages() string {
 	var b strings.Builder
 	for _, msg := range m.messages {
-
 		b.WriteString(msg + "\n")
 	}
 

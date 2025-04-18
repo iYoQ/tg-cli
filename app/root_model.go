@@ -70,7 +70,7 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.state = msg.newState
 
 	case tea.WindowSizeMsg:
-		h, v := docStyle.GetFrameSize()
+		h, v := margStyle.GetFrameSize()
 		m.chatList.SetSize(msg.Width-h, msg.Height-v)
 
 	case errMsg:
@@ -106,7 +106,7 @@ func (m rootModel) View() string {
 
 	switch m.state {
 	case chatListView:
-		return docStyle.Render(m.chatList.View())
+		return margStyle.Render(m.chatList.View())
 
 	case chatView:
 		return m.chat.View()
