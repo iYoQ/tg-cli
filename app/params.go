@@ -21,7 +21,7 @@ const (
 	historyLength int32 = 50
 	chatLength    int32 = 50
 	pageSize      int32 = 50
-	maxScreenChat int   = 100
+	maxScreenChat int   = 150
 )
 
 const (

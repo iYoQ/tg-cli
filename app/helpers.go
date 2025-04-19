@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -19,7 +20,7 @@ func processMessages(msg *tdlib.Message, from string) string {
 	case *tdlib.MessagePhoto:
 		var tmpText string
 		if content.Caption != nil {
-			tmpText = fmt.Sprintf("[media content]\n%s", content.Caption.Text)
+			tmpText = fmt.Sprintf("[media content] %s", content.Caption.Text)
 		}
 		result = formatMessage(tmpText, from, msg.Date)
 	case *tdlib.MessageVideo, *tdlib.MessageAudio:
@@ -49,15 +50,26 @@ func changeView(model tea.Model, newView viewState) (tea.Model, tea.Cmd) {
 	})
 }
 
-func parseDate(date int32) string {
-	tm := time.Unix(int64(date), 0)
-	return fmt.Sprint(tm.Format("2006-01-02 15:04:05"))
-}
-
 func formatMessage(msg string, from string, unixDate int32) string {
 	dt := parseDate(unixDate)
+	msg = addIndenting(msg, dt)
 
 	return fmt.Sprintf("[%s] %s: %s", dt, from, msg)
+}
+
+func parseDate(date int32) string {
+	tm := time.Unix(int64(date), 0)
+	now := time.Now()
+
+	if tm.Year() == now.Year() && tm.YearDay() == now.YearDay() {
+		return tm.Format("15:04:05")
+	}
+
+	if tm.Year() == now.Year() {
+		return tm.Format("01/02 15:04:05")
+	}
+
+	return tm.Format("2006-01-02 15:04:05")
 }
 
 func wrapMessage(msg string) string {
@@ -67,4 +79,18 @@ func wrapMessage(msg string) string {
 	}
 	formattedMessage := wordwrap.String(msg, min(termWidth, maxScreenChat))
 	return formattedMessage
+}
+
+func addIndenting(msg string, str string) string {
+	var result strings.Builder
+	indentation := len(str) + 3
+	for idx := 0; idx < len(msg); idx++ {
+		if msg[idx] == '\n' && idx+1 < len(msg) && msg[idx+1] != '\n' {
+			result.WriteString("\n")
+			result.WriteString(strings.Repeat(" ", indentation))
+		} else {
+			result.WriteByte(msg[idx])
+		}
+	}
+	return result.String()
 }
