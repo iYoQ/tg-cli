@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -59,6 +60,19 @@ func formatMessage(msg string, from string, unixDate int32) string {
 	return fmt.Sprintf("[%s] %s: %s", dt, from, msg)
 }
 
+func formatCommand(msg string, cmdType string) (string, string, error) {
+	msgTrim := strings.TrimSpace(msg)
+	msgSplit := strings.Split(msgTrim, " ")
+
+	if cmdType == "photo" {
+		photoPath := msgSplit[1]
+		text := strings.Join(msgSplit[2:], " ")
+		return photoPath, text, nil
+	} else {
+		return "", "", errors.New("error in formatCommand")
+	}
+}
+
 func parseDate(date int32) string {
 	tm := time.Unix(int64(date), 0)
 	now := time.Now()
@@ -95,4 +109,13 @@ func addIndenting(msg string, str string) string {
 		}
 	}
 	return result.String()
+}
+
+func checkCommand(msg string) string {
+	msgSplit := strings.Split(msg, " ")
+	if msgSplit[0] == "/ph" && len(msgSplit) > 1 {
+		return "photo"
+	} else {
+		return ""
+	}
 }

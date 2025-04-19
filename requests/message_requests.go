@@ -19,13 +19,11 @@ func SendText(client *tdlib.Client, chatId int64, msg string) {
 	sendMessage(client, messageRequest)
 }
 
-func SendPhoto(client *tdlib.Client, chatId int64, photoPath string, text string) {
+func SendPhoto(client *tdlib.Client, chatId int64, photoPath string, text string) error {
 	if _, err := os.Stat(photoPath); os.IsNotExist(err) {
-		log.Printf("File does not exist: %s", photoPath)
-		return
+		return err
 	} else if err != nil {
-		log.Printf("Error checking file: %v", err)
-		return
+		return err
 	}
 
 	messageContent := &tdlib.InputMessagePhoto{
@@ -39,6 +37,7 @@ func SendPhoto(client *tdlib.Client, chatId int64, photoPath string, text string
 
 	messageRequest := buildRequest(chatId, messageContent)
 	sendMessage(client, messageRequest)
+	return nil
 }
 
 func buildRequest(chatId int64, content tdlib.InputMessageContent) *tdlib.SendMessageRequest {

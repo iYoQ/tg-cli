@@ -33,11 +33,25 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
-			go requests.SendText(m.conn.Client, m.chatId, m.input)
-			if m.chatId != m.conn.GetMe().Id {
-				message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-				m.messages = append(m.messages, message)
+			switch checkCommand(m.input) {
+			case "photo":
+				path, caption, err := formatCommand(m.input, "photo")
+				if err != nil {
+					return m, func() tea.Msg { return errMsg(err) }
+				}
+				go requests.SendPhoto(m.conn.Client, m.chatId, path, caption)
+				if m.chatId != m.conn.GetMe().Id {
+					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+					m.messages = append(m.messages, message)
+				}
+			default:
+				go requests.SendText(m.conn.Client, m.chatId, m.input)
+				if m.chatId != m.conn.GetMe().Id {
+					message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+					m.messages = append(m.messages, message)
+				}
 			}
+
 			m.input = ""
 		case tea.KeyBackspace:
 			if len(m.input) > 0 {
@@ -46,7 +60,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			closeChat(m.conn.Client, m.chatId)
 			return changeView(m, chatListView)
-		case tea.KeyRunes:
+		case tea.KeyRunes, tea.KeySpace:
 			m.input += msg.String()
 		case tea.KeyCtrlDown:
 			m.input += "\n"
