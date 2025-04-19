@@ -23,6 +23,8 @@ func processMessages(msg *tdlib.Message, from string) string {
 			tmpText = fmt.Sprintf("[media content] %s", content.Caption.Text)
 		}
 		result = formatMessage(tmpText, from, msg.Date)
+	case *tdlib.MessageAnimatedEmoji:
+		result = formatMessage(content.Emoji, from, msg.Date)
 	case *tdlib.MessageVideo, *tdlib.MessageAudio:
 		result = formatMessage("[media content]", from, msg.Date)
 	}
