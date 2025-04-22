@@ -82,15 +82,21 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tdMessageMsg:
 		m.messages = append(m.messages, string(msg))
+		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
 		cmds = append(cmds, m.listenUpdatesCmd())
 
 	case chatHistoryMsg:
 		m.messages = msg
+		m.viewport.SetContent(m.renderMessages())
+		m.viewport.GotoBottom()
 	}
 
+	// if m.viewport.YOffset == 0 {
+	// 	log.Println("check")
+	// }
+
 	var cmd tea.Cmd
-	m.viewport.SetContent(m.renderMessages())
-	m.viewport.GotoBottom()
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
