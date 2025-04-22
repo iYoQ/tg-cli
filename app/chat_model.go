@@ -16,14 +16,18 @@ func newChatModel(width int, height int, chatId int64, conn *connection.Connecti
 	vp.SetContent("")
 
 	return chatModel{
-		viewport: vp,
-		chatId:   chatId,
-		conn:     conn,
+		viewport:        vp,
+		chatId:          chatId,
+		conn:            conn,
+		atTop:           false,
+		chatLoadSize:    20,
+		newChatLoadSize: 20,
+		init:            true,
 	}
 }
 
 func (m chatModel) Init() tea.Cmd {
-	return tea.Batch(m.openChatCmd(), m.listenUpdatesCmd())
+	return tea.Batch(m.openChatCmd(m.chatLoadSize), m.listenUpdatesCmd())
 }
 
 func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -87,18 +91,31 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, m.listenUpdatesCmd())
 
 	case chatHistoryMsg:
+		prevLineCount := m.viewport.TotalLineCount()
+		prevYOffset := m.viewport.YOffset
+
 		m.messages = msg
 		m.viewport.SetContent(m.renderMessages())
-		m.viewport.GotoBottom()
+		if m.init {
+			m.viewport.GotoBottom()
+			m.init = false
+		} else {
+			newLines := m.viewport.TotalLineCount() - prevLineCount
+			m.viewport.YOffset = prevYOffset + newLines
+		}
 	}
-
-	// if m.viewport.YOffset == 0 {
-	// 	log.Println("check")
-	// }
 
 	var cmd tea.Cmd
 	m.viewport, cmd = m.viewport.Update(msg)
 	cmds = append(cmds, cmd)
+
+	if m.viewport.YOffset == 0 && !m.atTop {
+		m.atTop = true
+		m.newChatLoadSize += loadMessages
+		cmds = append(cmds, m.openChatCmd(m.newChatLoadSize))
+	} else if m.viewport.YOffset > 0 && m.atTop {
+		m.atTop = false
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -139,9 +156,10 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 	}
 }
 
-func (m chatModel) openChatCmd() tea.Cmd {
+func (m chatModel) openChatCmd(chatLoadSize int32) tea.Cmd {
+	chatLoadSize = max(m.chatLoadSize, chatLoadSize)
 	return func() tea.Msg {
-		history, err := getChatHistory(m.conn.Client, m.chatId)
+		history, err := getChatHistory(m.conn.Client, m.chatId, chatLoadSize)
 		if err != nil {
 			return errMsg(err)
 		}

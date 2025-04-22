@@ -20,8 +20,8 @@ const (
 const (
 	historyLength int32 = 50
 	chatLength    int32 = 50
-	pageSize      int32 = 50
 	maxScreenChat int   = 150
+	loadMessages  int32 = 20
 )
 
 const (
@@ -68,10 +68,14 @@ type rootModel struct {
 }
 
 type chatModel struct {
-	viewport viewport.Model
-	messages []string
-	chatId   int64
-	conn     *connection.Connection
-	input    string
-	err      errMsg
+	viewport        viewport.Model
+	messages        []string
+	chatId          int64
+	conn            *connection.Connection
+	input           string
+	err             errMsg
+	atTop           bool
+	chatLoadSize    int32
+	newChatLoadSize int32
+	init            bool
 }
