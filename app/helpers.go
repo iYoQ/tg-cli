@@ -24,6 +24,12 @@ func processMessages(msg *tdlib.Message, from string) string {
 			tmpText = fmt.Sprintf("[media content] %s", content.Caption.Text)
 		}
 		result = formatMessage(tmpText, from, msg.Date)
+	case *tdlib.MessageDocument:
+		var tmpText string
+		if content.Caption != nil {
+			tmpText = fmt.Sprintf("[media content] %s", content.Caption.Text)
+		}
+		result = formatMessage(tmpText, from, msg.Date)
 	case *tdlib.MessageAnimatedEmoji:
 		result = formatMessage(content.Emoji, from, msg.Date)
 	case *tdlib.MessageVideo, *tdlib.MessageAudio:
@@ -64,10 +70,10 @@ func formatCommand(msg string, cmdType string) (string, string, error) {
 	msgTrim := strings.TrimSpace(msg)
 	msgSplit := strings.Split(msgTrim, " ")
 
-	if cmdType == "photo" {
-		photoPath := msgSplit[1]
+	if cmdType == "photo" || cmdType == "file" {
+		path := msgSplit[1]
 		text := strings.Join(msgSplit[2:], " ")
-		return photoPath, text, nil
+		return path, text, nil
 	} else {
 		return "", "", errors.New("error in formatCommand")
 	}
@@ -113,8 +119,10 @@ func addIndenting(msg string, str string) string {
 
 func checkCommand(msg string) string {
 	msgSplit := strings.Split(msg, " ")
-	if msgSplit[0] == "/ph" && len(msgSplit) > 1 {
+	if msgSplit[0] == "/p" && len(msgSplit) > 1 {
 		return "photo"
+	} else if msgSplit[0] == "/f" && len(msgSplit) > 1 {
+		return "file"
 	} else {
 		return ""
 	}

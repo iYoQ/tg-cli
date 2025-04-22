@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"tg-cli/connection"
 
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	tdlib "github.com/zelenin/go-tdlib/client"
@@ -18,6 +19,19 @@ func NewRootModel(conn *connection.Connection) rootModel {
 	chatList := list.New([]list.Item{}, delegate, 0, 0)
 	chatList.SetStatusBarItemName("chat", "chats")
 	chatList.SetShowTitle(false)
+
+	logoutKey := key.NewBinding(
+		key.WithKeys("ctrl+l"),
+		key.WithHelp("ctrl+l", "logout"),
+	)
+
+	chatList.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{logoutKey}
+	}
+
+	chatList.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{logoutKey}
+	}
 
 	return rootModel{
 		conn:     conn,
@@ -62,6 +76,11 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "ctrl+c", "q":
 			if m.state == chatListView {
+				return m, tea.Quit
+			}
+		case "ctrl+l":
+			if m.state == chatListView {
+				m.conn.Client.LogOut(context.Background())
 				return m, tea.Quit
 			}
 		}

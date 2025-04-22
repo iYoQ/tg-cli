@@ -44,6 +44,16 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 					m.messages = append(m.messages, message)
 				}
+			case "file":
+				path, caption, err := formatCommand(m.input, "file")
+				if err != nil {
+					return m, func() tea.Msg { return errMsg(err) }
+				}
+				go requests.SendFile(m.conn.Client, m.chatId, path, caption)
+				if m.chatId != m.conn.GetMe().Id {
+					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+					m.messages = append(m.messages, message)
+				}
 			default:
 				go requests.SendText(m.conn.Client, m.chatId, m.input)
 				if m.chatId != m.conn.GetMe().Id {
@@ -94,7 +104,9 @@ func (m chatModel) View() string {
 
 	wrappedInput := wrapMessage(m.input)
 
-	newStr := fmt.Sprintf("%s\n%s", m.viewport.View(), inputStyle.Render("> "+wrappedInput))
+	help := "[/f] - send file, [/f] send photo, [Ctrl+C]/[Esc] return"
+
+	newStr := fmt.Sprintf("%s\n%s\n%s", m.viewport.View(), inputStyle.Render("> "+wrappedInput), helpStyle.Render(help))
 
 	return chatStyle.Render(newStr)
 }

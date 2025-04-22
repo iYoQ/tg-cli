@@ -37,6 +37,7 @@ var (
 	meStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("#b39ddb"))
 	senderStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffaf00"))
 	unkSenderStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000"))
+	helpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Margin(1, 0)
 )
 
 var senders = make(map[int64]string)
