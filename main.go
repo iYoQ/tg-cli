@@ -1,14 +1,12 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"runtime/debug"
 	"strconv"
 	"tg-cli/app"
 	"tg-cli/connection"
-	"tg-cli/requests"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
@@ -19,8 +17,16 @@ type Config struct {
 	apiHash string
 }
 
+type flags struct {
+	chatIdFlag  *string
+	fileFlag    *string
+	photoFlag   *string
+	captionFlag *string
+}
+
 func start() error {
 	cfg := loadParams()
+	flags := loadFlags()
 
 	conn := connection.NewConnection()
 
@@ -38,7 +44,9 @@ func start() error {
 		return err
 	}
 
-	if checkFlags(conn) {
+	if ok, err := checkFlags(conn, flags); err != nil {
+		return err
+	} else if ok {
 		return nil
 	}
 
@@ -70,45 +78,6 @@ func loadParams() Config {
 		apiId:   apiId,
 		apiHash: apiHash,
 	}
-}
-
-func checkFlags(conn *connection.Connection) bool {
-	chatIdFlag := flag.String("chat", "", "chat id")
-	photoFlag := flag.String("ph", "", "send photo --ph path/to/file")
-	captionFlag := flag.String("cap", "", "caption to photo --cap text")
-	flag.Parse()
-
-	chatIdRaw := *chatIdFlag
-	photoPath := *photoFlag
-	caption := *captionFlag
-
-	if chatIdRaw == "" && photoPath == "" && caption == "" {
-		return false
-	}
-
-	if chatIdRaw == "" {
-		log.Printf("chat must present")
-		return true
-	}
-
-	if photoPath == "" {
-		log.Printf("path to file must present")
-		return true
-	}
-
-	chatId64, err := strconv.ParseInt(chatIdRaw, 10, 64)
-	if err != nil {
-		log.Printf("strconv.Atoi error: %s", err)
-		return true
-	}
-
-	err = requests.SendPhoto(conn.Client, chatId64, photoPath, caption)
-	if err != nil {
-		log.Printf("error in sending: %s", err)
-		return true
-	}
-
-	return true
 }
 
 func main() {
