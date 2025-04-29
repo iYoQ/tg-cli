@@ -44,7 +44,7 @@ var (
 var senders = make(map[int64]string)
 
 type errMsg error
-type chatListMsg []*tdlib.Chat
+type chatListMsg []list.Item
 type chatHistoryMsg []string
 type tdMessageMsg string
 type topicListMsg []*tdlib.ForumTopic

@@ -47,17 +47,23 @@ func (m rootModel) Init() tea.Cmd {
 			return errMsg(err)
 		}
 
-		var results []*tdlib.Chat
+		items := make([]list.Item, 0, len(chats.ChatIds))
+		var item chatItem
 
 		for _, id := range chats.ChatIds {
 			chat, err := m.conn.Client.GetChat(context.Background(), &tdlib.GetChatRequest{ChatId: id})
 			if err == nil {
-				results = append(results, chat)
+				if chat.ViewAsTopics {
+					item = chatItem{title: chat.Title, id: chat.Id, haveTopics: true}
+				} else {
+					item = chatItem{title: chat.Title, id: chat.Id, haveTopics: false}
+				}
+				items = append(items, item)
 			}
 			senders[id] = senderStyle.Render(chat.Title)
 		}
 		senders[m.conn.GetMe().Id] = meStyle.Render(myIdentifier)
-		return chatListMsg(results)
+		return chatListMsg(items)
 	}
 }
 
@@ -95,17 +101,8 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 
 	case chatListMsg:
-		var item chatItem
-		items := make([]list.Item, 0, len(msg))
-		for _, chat := range msg {
-			if chat.ViewAsTopics {
-				item = chatItem{title: chat.Title, id: chat.Id, haveTopics: true}
-			} else {
-				item = chatItem{title: chat.Title, id: chat.Id}
-			}
-			items = append(items, item)
-		}
-		m.chatList.SetItems(items)
+		m.chatList.SetItems(msg)
+
 	case openChatMsg:
 		return m.openChat(msg.chatId, msg.threadId)
 	}
@@ -138,7 +135,7 @@ func (m rootModel) View() string {
 	case chatListView:
 		return margStyle.Render(m.chatList.View())
 	case topicsView:
-		return margStyle.Render(m.topics.View())
+		return m.topics.View()
 	case chatView:
 		return m.chat.View()
 	}

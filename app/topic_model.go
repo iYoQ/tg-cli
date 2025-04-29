@@ -67,9 +67,5 @@ func (m topicsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m topicsModel) View() string {
-	return m.topicList.View()
-}
-
-func (m topicsModel) openTopic(topic topicItem) (tea.Model, tea.Cmd) {
-	return m, nil
+	return margStyle.Render(m.topicList.View())
 }
