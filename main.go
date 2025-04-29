@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"os"
 	"runtime/debug"
@@ -18,8 +17,16 @@ type Config struct {
 	apiHash string
 }
 
+type flags struct {
+	chatIdFlag  *string
+	fileFlag    *string
+	photoFlag   *string
+	captionFlag *string
+}
+
 func start() error {
 	cfg := loadParams()
+	flags := loadFlags()
 
 	conn := connection.NewConnection()
 
@@ -37,6 +44,12 @@ func start() error {
 		return err
 	}
 
+	if ok, err := checkFlags(conn, flags); err != nil {
+		return err
+	} else if ok {
+		return nil
+	}
+
 	app := tea.NewProgram(app.NewRootModel(conn), tea.WithAltScreen())
 	if _, err := app.Run(); err != nil {
 		return err
@@ -47,26 +60,14 @@ func start() error {
 
 func loadParams() Config {
 	godotenv.Load()
-
-	apiIdFlag := flag.String("id", "", "api id")
-	apiHashFlag := flag.String("hash", "", "api hash")
-	flag.Parse()
-
-	apiIdRaw := *apiIdFlag
-	if apiIdRaw == "" {
-		apiIdRaw = os.Getenv("API_ID")
-	}
-
-	apiHash := *apiHashFlag
-	if apiHash == "" {
-		apiHash = os.Getenv("API_HASH")
-	}
+	apiIdRaw := os.Getenv("API_ID")
+	apiHash := os.Getenv("API_HASH")
 
 	if apiIdRaw == "" || apiHash == "" {
-		log.Fatalf("API_ID and API_HASH are required, use --id=, --hash= flags or .env file, or ENV")
+		log.Fatalf("API_ID and API_HASH are required, use .env file, or ENV")
 	}
 
-	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 32)
+	apiId64, err := strconv.ParseInt(apiIdRaw, 10, 64)
 	if err != nil {
 		log.Fatalf("strconv.Atoi error: %s", err)
 	}

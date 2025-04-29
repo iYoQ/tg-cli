@@ -21,8 +21,8 @@ const (
 const (
 	historyLength int32 = 50
 	chatLength    int32 = 50
-	pageSize      int32 = 50
-	maxScreenChat int   = 100
+	maxScreenChat int   = 150
+	loadMessages  int32 = 20
 )
 
 const (
@@ -38,6 +38,7 @@ var (
 	meStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("#b39ddb"))
 	senderStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("#ffaf00"))
 	unkSenderStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("#ff0000"))
+	helpStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Margin(1, 0)
 )
 
 var senders = make(map[int64]string)
@@ -85,13 +86,17 @@ type rootModel struct {
 }
 
 type chatModel struct {
-	conn     *connection.Connection
-	viewport viewport.Model
-	messages []string
-	chatId   int64
-	threadId int64
-	input    string
-	err      errMsg
+	conn            *connection.Connection
+	viewport        viewport.Model
+	messages        []string
+	chatId          int64
+	threadId        int64
+	input           string
+	err             errMsg
+	atTop           bool
+	chatLoadSize    int32
+	newChatLoadSize int32
+	init            bool
 }
 
 type topicsModel struct {
