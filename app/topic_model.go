@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"log"
 	"tg-cli/connection"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -10,12 +9,12 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func newTopicsModel(chatId int64, conn *connection.Connection) topicsModel {
+func newTopicsModel(width int, height int, chatId int64, conn *connection.Connection) topicsModel {
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = listSelectedStyle
 	delegate.Styles.SelectedDesc = listSelectedStyle
 
-	topicsList := list.New([]list.Item{}, delegate, 0, 0)
+	topicsList := list.New([]list.Item{}, delegate, width, height)
 	topicsList.SetStatusBarItemName("topic", "topics")
 	topicsList.SetShowTitle(false)
 
@@ -59,7 +58,7 @@ func (m topicsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		h, v := margStyle.GetFrameSize()
 		m.topicList.SetSize(msg.Width-h, msg.Height-v)
-		log.Printf("Got size: %dx%d\n", msg.Width, msg.Height)
+
 	}
 
 	var cmd tea.Cmd

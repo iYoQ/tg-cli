@@ -133,14 +133,9 @@ func openChat(m rootModel, chat chatItem) (tea.Model, tea.Cmd) {
 
 func openTopics(m rootModel, chat chatItem) (tea.Model, tea.Cmd) {
 	m.state = topicsView
-	m.topics = newTopicsModel(chat.id, m.conn)
-
-	size := tea.WindowSizeMsg{
-		Width:  m.chatList.Width(),
-		Height: m.chatList.Height(),
-	}
+	m.topics = newTopicsModel(m.chatList.Width(), m.chatList.Height(), chat.id, m.conn)
 
 	chatCmd := m.topics.Init()
 
-	return m, tea.Batch(chatCmd, func() tea.Msg { return size })
+	return m, chatCmd
 }
