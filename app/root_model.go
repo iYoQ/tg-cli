@@ -54,11 +54,10 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.chatList.FilterState() != list.Filtering && m.state == chatListView {
 				item := m.chatList.SelectedItem().(chatItem)
-
-				m.state = chatView
-				m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), item.id, m.conn)
-				chatCmd := m.chat.Init()
-				return m, chatCmd
+				if item.haveTopics {
+					return openTopics(m, item)
+				}
+				return openChat(m, item)
 			}
 		case "ctrl+c", "q":
 			if m.state == chatListView {
@@ -77,9 +76,15 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 
 	case chatListMsg:
+		var item chatItem
 		items := make([]list.Item, 0, len(msg))
 		for _, chat := range msg {
-			items = append(items, chatItem{title: chat.Title, id: chat.Id})
+			if chat.ViewAsTopics {
+				item = chatItem{title: chat.Title, id: chat.Id, haveTopics: true}
+			} else {
+				item = chatItem{title: chat.Title, id: chat.Id}
+			}
+			items = append(items, item)
 		}
 		m.chatList.SetItems(items)
 	}
@@ -89,6 +94,10 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case chatListView:
 		updatedModel, newCmd := m.chatList.Update(msg)
 		m.chatList = updatedModel
+		cmd = newCmd
+	case topicsView:
+		updatedModel, newCmd := m.topics.Update(msg)
+		m.topics = updatedModel.(topicsModel)
 		cmd = newCmd
 	case chatView:
 		updatedModel, newCmd := m.chat.Update(msg)
@@ -107,10 +116,31 @@ func (m rootModel) View() string {
 	switch m.state {
 	case chatListView:
 		return margStyle.Render(m.chatList.View())
-
+	case topicsView:
+		return margStyle.Render(m.topics.View())
 	case chatView:
 		return m.chat.View()
 	}
-
 	return "Loading..."
+}
+
+func openChat(m rootModel, chat chatItem) (tea.Model, tea.Cmd) {
+	m.state = chatView
+	m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), chat.id, m.conn)
+	chatCmd := m.chat.Init()
+	return m, chatCmd
+}
+
+func openTopics(m rootModel, chat chatItem) (tea.Model, tea.Cmd) {
+	m.state = topicsView
+	m.topics = newTopicsModel(chat.id, m.conn)
+
+	size := tea.WindowSizeMsg{
+		Width:  m.chatList.Width(),
+		Height: m.chatList.Height(),
+	}
+
+	chatCmd := m.topics.Init()
+
+	return m, tea.Batch(chatCmd, func() tea.Msg { return size })
 }
