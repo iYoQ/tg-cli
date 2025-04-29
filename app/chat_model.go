@@ -128,7 +128,7 @@ func (m chatModel) View() string {
 
 	wrappedInput := wrapMessage(m.input)
 
-	help := "[/f] - send file, [/f] send photo, [Ctrl+C]/[Esc] return"
+	help := "[/f] - send file, [/p] send photo, [Ctrl+C]/[Esc] return"
 
 	newStr := fmt.Sprintf("%s\n%s\n%s", m.viewport.View(), inputStyle.Render("> "+wrappedInput), helpStyle.Render(help))
 
