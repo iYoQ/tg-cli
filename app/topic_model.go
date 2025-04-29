@@ -39,7 +39,7 @@ func (m topicsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			item := m.topicList.SelectedItem().(topicItem)
-			return openTopic(m, item)
+			return m, func() tea.Msg { return openChatMsg{chatId: item.chatId, threadId: item.threadId} }
 
 		case "ctrl+c", "q":
 			return changeView(m, chatListView)
@@ -70,6 +70,6 @@ func (m topicsModel) View() string {
 	return m.topicList.View()
 }
 
-func openTopic(m topicsModel, topic topicItem) (tea.Model, tea.Cmd) {
+func (m topicsModel) openTopic(topic topicItem) (tea.Model, tea.Cmd) {
 	return m, nil
 }

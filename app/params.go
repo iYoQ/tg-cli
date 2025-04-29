@@ -47,6 +47,10 @@ type chatListMsg []*tdlib.Chat
 type chatHistoryMsg []string
 type tdMessageMsg string
 type topicListMsg []*tdlib.ForumTopic
+type openChatMsg struct {
+	chatId   int64
+	threadId int64
+}
 type changeStateMsg struct {
 	newState viewState
 }
@@ -85,6 +89,7 @@ type chatModel struct {
 	viewport viewport.Model
 	messages []string
 	chatId   int64
+	threadId int64
 	input    string
 	err      errMsg
 }

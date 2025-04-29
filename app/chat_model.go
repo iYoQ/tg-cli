@@ -12,7 +12,7 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func newChatModel(width int, height int, chatId int64, conn *connection.Connection) chatModel {
+func newChatModel(width int, height int, chatId int64, threadId int64, conn *connection.Connection) chatModel {
 	vp := viewport.New(width, height)
 	vp.SetContent("")
 
@@ -20,6 +20,7 @@ func newChatModel(width int, height int, chatId int64, conn *connection.Connecti
 		viewport: vp,
 		chatId:   chatId,
 		conn:     conn,
+		threadId: threadId,
 	}
 }
 
@@ -111,7 +112,7 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 
 func (m chatModel) openChatCmd() tea.Cmd {
 	return func() tea.Msg {
-		history, err := getChatHistory(m.conn.Client, m.chatId, m.viewport.Width)
+		history, err := getChatHistory(m.conn.Client, m.chatId, m.threadId, m.viewport.Width)
 		if err != nil {
 			return errMsg(err)
 		}

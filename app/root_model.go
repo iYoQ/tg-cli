@@ -55,9 +55,9 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.chatList.FilterState() != list.Filtering && m.state == chatListView {
 				item := m.chatList.SelectedItem().(chatItem)
 				if item.haveTopics {
-					return openTopics(m, item)
+					return m.openTopics(item.id)
 				}
-				return openChat(m, item)
+				return m.openChat(item.id, 0)
 			}
 		case "ctrl+c", "q":
 			if m.state == chatListView {
@@ -87,6 +87,8 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			items = append(items, item)
 		}
 		m.chatList.SetItems(items)
+	case openChatMsg:
+		return m.openChat(msg.chatId, msg.threadId)
 	}
 
 	var cmd tea.Cmd
@@ -124,18 +126,16 @@ func (m rootModel) View() string {
 	return "Loading..."
 }
 
-func openChat(m rootModel, chat chatItem) (tea.Model, tea.Cmd) {
+func (m rootModel) openChat(chatId int64, threadId int64) (tea.Model, tea.Cmd) {
 	m.state = chatView
-	m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), chat.id, m.conn)
+	m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), chatId, threadId, m.conn)
 	chatCmd := m.chat.Init()
 	return m, chatCmd
 }
 
-func openTopics(m rootModel, chat chatItem) (tea.Model, tea.Cmd) {
+func (m rootModel) openTopics(chatId int64) (tea.Model, tea.Cmd) {
 	m.state = topicsView
-	m.topics = newTopicsModel(m.chatList.Width(), m.chatList.Height(), chat.id, m.conn)
-
+	m.topics = newTopicsModel(m.chatList.Width(), m.chatList.Height(), chatId, m.conn)
 	chatCmd := m.topics.Init()
-
 	return m, chatCmd
 }
