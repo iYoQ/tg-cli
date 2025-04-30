@@ -9,6 +9,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 func newChatModel(width int, height int, chatId int64, threadId int64, conn *connection.Connection) chatModel {
@@ -36,6 +38,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		var message string
 		switch msg.Type {
 		case tea.KeyEnter:
 			switch checkCommand(m.input) {
@@ -45,28 +48,23 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, func() tea.Msg { return errMsg(err) }
 				}
 				go requests.SendPhoto(m.conn.Client, m.chatId, path, caption)
-				if m.chatId != m.conn.GetMe().Id {
-					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-					m.messages = append(m.messages, message)
-				}
+				message = formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+
 			case "file":
 				path, caption, err := formatCommand(m.input, "file")
 				if err != nil {
 					return m, func() tea.Msg { return errMsg(err) }
 				}
 				go requests.SendFile(m.conn.Client, m.chatId, path, caption)
-				if m.chatId != m.conn.GetMe().Id {
-					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-					m.messages = append(m.messages, message)
-				}
-			default:
-				go requests.SendText(m.conn.Client, m.chatId, m.input)
-				if m.chatId != m.conn.GetMe().Id {
-					message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-					m.messages = append(m.messages, message)
-				}
-			}
+				message = formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 
+			default:
+				requests.SendText(m.conn.Client, m.chatId, m.input)
+				message = formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+			}
+			m.messages = append(m.messages, message)
+			m.viewport.SetContent(m.renderMessages())
+			m.viewport.GotoBottom()
 			m.input = ""
 		case tea.KeyBackspace:
 			if len(m.input) > 0 {
@@ -127,21 +125,22 @@ func (m chatModel) View() string {
 	}
 
 	wrappedInput := wrapMessage(m.input)
+	help := "[/f] send file, [/p] send photo, [Ctrl+C]/[Esc] return"
 
-	help := "[/f] - send file, [/p] send photo, [Ctrl+C]/[Esc] return"
-
-	newStr := fmt.Sprintf("%s\n%s\n%s", m.viewport.View(), inputStyle.Render("> "+wrappedInput), helpStyle.Render(help))
-
-	return chatStyle.Render(newStr)
+	return lipgloss.JoinVertical(lipgloss.Left,
+		m.viewport.View(),
+		"",
+		inputStyle.Render("> "+wrappedInput),
+		helpStyle.Render(help),
+	)
 }
 
 func (m chatModel) listenUpdatesCmd() tea.Cmd {
 	return func() tea.Msg {
 		for msg := range m.conn.UpdatesChannel {
-			if msg.ChatId == m.chatId {
+			if msg.ChatId == m.chatId && msg.SenderId.(*tdlib.MessageSenderUser).UserId != m.conn.GetMe().Id {
 				from := getUserName(m.conn.Client, msg)
 				formatMsg := processMessages(msg, from)
-				updateMsg := tdMessageMsg(formatMsg)
 
 				messageIds := make([]int64, 1)
 				messageIds[0] = msg.Id
@@ -150,7 +149,7 @@ func (m chatModel) listenUpdatesCmd() tea.Cmd {
 					return errMsg(err)
 				}
 
-				return updateMsg
+				return tdMessageMsg(formatMsg)
 			}
 		}
 		return nil

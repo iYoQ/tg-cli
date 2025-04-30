@@ -55,7 +55,6 @@ func getChatHistory(client *tdlib.Client, chatId int64, threadId int64, chatLoad
 			messages = append(messages, formatMsg)
 		}
 	}
-
 	return messages, nil
 }
 
