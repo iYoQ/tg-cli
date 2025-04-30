@@ -43,12 +43,12 @@ func checkFlags(conn *connection.Connection, flags flags) (bool, error) {
 	}
 
 	if *flags.fileFlag != "" {
-		err = requests.SendFile(conn.Client, chatId64, *flags.fileFlag, *flags.captionFlag)
+		err = requests.SendFile(conn.Client, requests.Params{ChatId: chatId64, FilePath: *flags.fileFlag, Msg: *flags.captionFlag})
 		if err != nil {
 			return true, err
 		}
 	} else if *flags.photoFlag != "" {
-		err = requests.SendPhoto(conn.Client, chatId64, *flags.photoFlag, *flags.captionFlag)
+		err = requests.SendPhoto(conn.Client, requests.Params{ChatId: chatId64, FilePath: *flags.photoFlag, Msg: *flags.captionFlag})
 		if err != nil {
 			return true, err
 		}

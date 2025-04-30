@@ -47,7 +47,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, func() tea.Msg { return errMsg(err) }
 				}
-				go requests.SendPhoto(m.conn.Client, m.chatId, path, caption)
+				go requests.SendPhoto(m.conn.Client, requests.Params{ChatId: m.chatId, FilePath: path, Msg: caption})
 				message = formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 
 			case "file":
@@ -55,11 +55,11 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, func() tea.Msg { return errMsg(err) }
 				}
-				go requests.SendFile(m.conn.Client, m.chatId, path, caption)
+				go requests.SendFile(m.conn.Client, requests.Params{ChatId: m.chatId, FilePath: path, Msg: caption})
 				message = formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 
 			default:
-				requests.SendText(m.conn.Client, m.chatId, m.input)
+				requests.SendText(m.conn.Client, requests.Params{ChatId: m.chatId, Msg: m.input})
 				message = formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 			}
 			m.messages = append(m.messages, message)

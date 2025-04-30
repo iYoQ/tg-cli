@@ -8,19 +8,26 @@ import (
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func SendText(client *tdlib.Client, chatId int64, msg string) {
+type Params struct {
+	ChatId   int64
+	ThreadId int64
+	Msg      string
+	FilePath string
+}
+
+func SendText(client *tdlib.Client, params Params) {
 	messageContent := &tdlib.InputMessageText{
 		Text: &tdlib.FormattedText{
-			Text: msg,
+			Text: params.Msg,
 		},
 	}
 
-	messageRequest := buildRequest(chatId, messageContent)
+	messageRequest := buildRequest(messageContent, params)
 	sendMessage(client, messageRequest)
 }
 
-func SendPhoto(client *tdlib.Client, chatId int64, photoPath string, text string) error {
-	if _, err := os.Stat(photoPath); os.IsNotExist(err) {
+func SendPhoto(client *tdlib.Client, params Params) error {
+	if _, err := os.Stat(params.FilePath); os.IsNotExist(err) {
 		return err
 	} else if err != nil {
 		return err
@@ -28,20 +35,20 @@ func SendPhoto(client *tdlib.Client, chatId int64, photoPath string, text string
 
 	messageContent := &tdlib.InputMessagePhoto{
 		Photo: &tdlib.InputFileLocal{
-			Path: photoPath,
+			Path: params.FilePath,
 		},
 		Caption: &tdlib.FormattedText{
-			Text: text,
+			Text: params.Msg,
 		},
 	}
 
-	messageRequest := buildRequest(chatId, messageContent)
+	messageRequest := buildRequest(messageContent, params)
 	sendMessage(client, messageRequest)
 	return nil
 }
 
-func SendFile(client *tdlib.Client, chatId int64, filePach string, text string) error {
-	if _, err := os.Stat(filePach); os.IsNotExist(err) {
+func SendFile(client *tdlib.Client, params Params) error {
+	if _, err := os.Stat(params.FilePath); os.IsNotExist(err) {
 		return err
 	} else if err != nil {
 		return err
@@ -49,22 +56,23 @@ func SendFile(client *tdlib.Client, chatId int64, filePach string, text string) 
 
 	messageContent := &tdlib.InputMessageDocument{
 		Document: &tdlib.InputFileLocal{
-			Path: filePach,
+			Path: params.FilePath,
 		},
 		Caption: &tdlib.FormattedText{
-			Text: text,
+			Text: params.Msg,
 		},
 	}
 
-	messageRequest := buildRequest(chatId, messageContent)
+	messageRequest := buildRequest(messageContent, params)
 	sendMessage(client, messageRequest)
 	return nil
 }
 
-func buildRequest(chatId int64, content tdlib.InputMessageContent) *tdlib.SendMessageRequest {
+func buildRequest(content tdlib.InputMessageContent, params Params) *tdlib.SendMessageRequest {
 	return &tdlib.SendMessageRequest{
-		ChatId:              chatId,
+		ChatId:              params.ChatId,
 		InputMessageContent: content,
+		MessageThreadId:     params.ThreadId,
 	}
 }
 
