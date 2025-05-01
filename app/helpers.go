@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"tg-cli/connection"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -127,5 +128,21 @@ func checkCommand(msg string) string {
 		return "file"
 	} else {
 		return ""
+	}
+}
+
+func listenNewMessages(conn *connection.Connection, currentChatId int64, msgChannel chan<- tdMessageMsg) {
+	for msg := range conn.UpdatesChannel {
+		if msg.ChatId == currentChatId {
+			from := getUserName(conn.Client, msg)
+			formatMsg := processMessages(msg, from)
+
+			messageIds := make([]int64, 1)
+			messageIds[0] = msg.Id
+
+			readMessages(conn.Client, msg.ChatId, messageIds)
+
+			msgChannel <- tdMessageMsg(formatMsg)
+		}
 	}
 }

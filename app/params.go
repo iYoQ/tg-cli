@@ -96,6 +96,7 @@ type chatModel struct {
 	chatLoadSize    int32
 	newChatLoadSize int32
 	init            bool
+	msgChan         chan tdMessageMsg
 }
 
 type topicsModel struct {

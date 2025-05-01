@@ -10,12 +10,12 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
 func newChatModel(width int, height int, chatId int64, threadId int64, conn *connection.Connection) chatModel {
 	vp := viewport.New(width, height)
 	vp.SetContent("")
+	msgChan := make(chan tdMessageMsg, 100)
 
 	return chatModel{
 		viewport:        vp,
@@ -26,11 +26,13 @@ func newChatModel(width int, height int, chatId int64, threadId int64, conn *con
 		newChatLoadSize: 20,
 		init:            true,
 		threadId:        threadId,
+		msgChan:         msgChan,
 	}
 }
 
 func (m chatModel) Init() tea.Cmd {
-	return tea.Batch(m.openChatCmd(m.chatLoadSize), m.listenUpdatesCmd())
+	go listenNewMessages(m.conn, m.chatId, m.msgChan)
+	return tea.Batch(m.openChatCmd(m.chatLoadSize), m.listenUpdatesCmd(m.msgChan))
 }
 
 func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -87,7 +89,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.messages = append(m.messages, string(msg))
 		m.viewport.SetContent(m.renderMessages())
 		m.viewport.GotoBottom()
-		cmds = append(cmds, m.listenUpdatesCmd())
+		return m, m.listenUpdatesCmd(m.msgChan)
 
 	case chatHistoryMsg:
 		prevLineCount := m.viewport.TotalLineCount()
@@ -135,24 +137,9 @@ func (m chatModel) View() string {
 	)
 }
 
-func (m chatModel) listenUpdatesCmd() tea.Cmd {
+func (m chatModel) listenUpdatesCmd(msgChan <-chan tdMessageMsg) tea.Cmd {
 	return func() tea.Msg {
-		for msg := range m.conn.UpdatesChannel {
-			if msg.ChatId == m.chatId && msg.SenderId.(*tdlib.MessageSenderUser).UserId != m.conn.GetMe().Id {
-				from := getUserName(m.conn.Client, msg)
-				formatMsg := processMessages(msg, from)
-
-				messageIds := make([]int64, 1)
-				messageIds[0] = msg.Id
-
-				if err := readMessages(m.conn.Client, msg.ChatId, messageIds); err != nil {
-					return errMsg(err)
-				}
-
-				return tdMessageMsg(formatMsg)
-			}
-		}
-		return nil
+		return <-msgChan
 	}
 }
 
