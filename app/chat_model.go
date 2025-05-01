@@ -68,8 +68,10 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				requests.SendText(m.conn.Client, requests.Params{ChatId: m.chatId, ThreadId: m.threadId, Msg: m.input})
 				message = formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
 			}
-			m.messages = append(m.messages, message)
-			m.viewport.SetContent(m.renderMessages())
+			if m.chatId != m.conn.GetMe().Id {
+				m.messages = append(m.messages, message)
+				m.viewport.SetContent(m.renderMessages())
+			}
 			m.viewport.GotoBottom()
 			m.input = ""
 

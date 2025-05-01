@@ -136,14 +136,20 @@ func listenFromUpdateChannel(conn *connection.Connection, currentChatId int64, m
 	for {
 		select {
 		case msg := <-conn.UpdatesChannel:
-			if msg.ChatId == currentChatId && !msg.IsOutgoing {
-				from := getUserName(conn.Client, msg)
-				formatMsg := processMessages(msg, from)
-
-				readMessages(conn.Client, msg.ChatId, []int64{msg.Id})
-
-				msgChannel <- tdMessageMsg(formatMsg)
+			if msg.ChatId != currentChatId {
+				continue
 			}
+			if msg.IsOutgoing && currentChatId != conn.GetMe().Id {
+				continue
+			}
+
+			from := getUserName(conn.Client, msg)
+			formatMsg := processMessages(msg, from)
+
+			readMessages(conn.Client, msg.ChatId, []int64{msg.Id})
+
+			msgChannel <- tdMessageMsg(formatMsg)
+
 		case <-ctx.Done():
 			return
 		}
