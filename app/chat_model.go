@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"tg-cli/connection"
@@ -16,6 +17,7 @@ func newChatModel(width int, height int, chatId int64, threadId int64, conn *con
 	vp := viewport.New(width, height)
 	vp.SetContent("")
 	msgChan := make(chan tdMessageMsg, 100)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	return chatModel{
 		viewport:        vp,
@@ -27,11 +29,13 @@ func newChatModel(width int, height int, chatId int64, threadId int64, conn *con
 		init:            true,
 		threadId:        threadId,
 		msgChan:         msgChan,
+		ctxForMsg:       ctx,
+		cancelMsgChan:   cancel,
 	}
 }
 
 func (m chatModel) Init() tea.Cmd {
-	go listenNewMessages(m.conn, m.chatId, m.msgChan)
+	go listenFromUpdateChannel(m.conn, m.chatId, m.msgChan, m.ctxForMsg)
 	return tea.Batch(m.openChatCmd(m.chatLoadSize), m.listenUpdatesCmd(m.msgChan))
 }
 
@@ -68,15 +72,21 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.SetContent(m.renderMessages())
 			m.viewport.GotoBottom()
 			m.input = ""
+
 		case tea.KeyBackspace:
-			if len(m.input) > 0 {
-				m.input = m.input[:len(m.input)-1]
+			runes := []rune(m.input)
+			if len(runes) > 0 {
+				m.input = string(runes[:len(runes)-1])
 			}
+
 		case tea.KeyCtrlC, tea.KeyEsc:
 			closeChat(m.conn.Client, m.chatId)
+			m.cancelMsgChan()
 			return changeView(m, chatListView)
+
 		case tea.KeyRunes, tea.KeySpace:
 			m.input += msg.String()
+
 		case tea.KeyCtrlDown:
 			m.input += "\n"
 		}

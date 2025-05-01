@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -131,18 +132,20 @@ func checkCommand(msg string) string {
 	}
 }
 
-func listenNewMessages(conn *connection.Connection, currentChatId int64, msgChannel chan<- tdMessageMsg) {
-	for msg := range conn.UpdatesChannel {
-		if msg.ChatId == currentChatId {
-			from := getUserName(conn.Client, msg)
-			formatMsg := processMessages(msg, from)
+func listenFromUpdateChannel(conn *connection.Connection, currentChatId int64, msgChannel chan<- tdMessageMsg, ctx context.Context) {
+	for {
+		select {
+		case msg := <-conn.UpdatesChannel:
+			if msg.ChatId == currentChatId && !msg.IsOutgoing {
+				from := getUserName(conn.Client, msg)
+				formatMsg := processMessages(msg, from)
 
-			messageIds := make([]int64, 1)
-			messageIds[0] = msg.Id
+				readMessages(conn.Client, msg.ChatId, []int64{msg.Id})
 
-			readMessages(conn.Client, msg.ChatId, messageIds)
-
-			msgChannel <- tdMessageMsg(formatMsg)
+				msgChannel <- tdMessageMsg(formatMsg)
+			}
+		case <-ctx.Done():
+			return
 		}
 	}
 }

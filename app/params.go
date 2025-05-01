@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"tg-cli/connection"
 
@@ -97,6 +98,8 @@ type chatModel struct {
 	newChatLoadSize int32
 	init            bool
 	msgChan         chan tdMessageMsg
+	ctxForMsg       context.Context
+	cancelMsgChan   context.CancelFunc
 }
 
 type topicsModel struct {
