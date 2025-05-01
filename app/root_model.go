@@ -47,17 +47,23 @@ func (m rootModel) Init() tea.Cmd {
 			return errMsg(err)
 		}
 
-		var results []*tdlib.Chat
+		items := make([]list.Item, 0, len(chats.ChatIds))
+		var item chatItem
 
 		for _, id := range chats.ChatIds {
 			chat, err := m.conn.Client.GetChat(context.Background(), &tdlib.GetChatRequest{ChatId: id})
 			if err == nil {
-				results = append(results, chat)
+				if chat.ViewAsTopics {
+					item = chatItem{title: chat.Title, id: chat.Id, haveTopics: true}
+				} else {
+					item = chatItem{title: chat.Title, id: chat.Id, haveTopics: false}
+				}
+				items = append(items, item)
 			}
 			senders[id] = senderStyle.Render(chat.Title)
 		}
 		senders[m.conn.GetMe().Id] = meStyle.Render(myIdentifier)
-		return chatListMsg(results)
+		return chatListMsg(items)
 	}
 }
 
@@ -68,11 +74,10 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			if m.chatList.FilterState() != list.Filtering && m.state == chatListView {
 				item := m.chatList.SelectedItem().(chatItem)
-
-				m.state = chatView
-				m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), item.id, m.conn)
-				chatCmd := m.chat.Init()
-				return m, chatCmd
+				if item.haveTopics {
+					return m.openTopics(item.id)
+				}
+				return m.openChat(item.id, 0)
 			}
 		case "ctrl+c", "q":
 			if m.state == chatListView {
@@ -96,11 +101,10 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 
 	case chatListMsg:
-		items := make([]list.Item, 0, len(msg))
-		for _, chat := range msg {
-			items = append(items, chatItem{title: chat.Title, id: chat.Id})
-		}
-		m.chatList.SetItems(items)
+		m.chatList.SetItems(msg)
+
+	case openChatMsg:
+		return m.openChat(msg.chatId, msg.threadId)
 	}
 
 	var cmd tea.Cmd
@@ -108,6 +112,10 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case chatListView:
 		updatedModel, newCmd := m.chatList.Update(msg)
 		m.chatList = updatedModel
+		cmd = newCmd
+	case topicsView:
+		updatedModel, newCmd := m.topics.Update(msg)
+		m.topics = updatedModel.(topicsModel)
 		cmd = newCmd
 	case chatView:
 		updatedModel, newCmd := m.chat.Update(msg)
@@ -126,10 +134,24 @@ func (m rootModel) View() string {
 	switch m.state {
 	case chatListView:
 		return margStyle.Render(m.chatList.View())
-
+	case topicsView:
+		return m.topics.View()
 	case chatView:
 		return m.chat.View()
 	}
-
 	return "Loading..."
+}
+
+func (m rootModel) openChat(chatId int64, threadId int64) (tea.Model, tea.Cmd) {
+	m.state = chatView
+	m.chat = newChatModel(m.chatList.Width(), m.chatList.Height(), chatId, threadId, m.conn)
+	chatCmd := m.chat.Init()
+	return m, chatCmd
+}
+
+func (m rootModel) openTopics(chatId int64) (tea.Model, tea.Cmd) {
+	m.state = topicsView
+	m.topics = newTopicsModel(m.chatList.Width(), m.chatList.Height(), chatId, m.conn)
+	chatCmd := m.topics.Init()
+	return m, chatCmd
 }

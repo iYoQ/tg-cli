@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"tg-cli/connection"
 
@@ -15,6 +16,7 @@ type viewState int
 const (
 	chatListView viewState = iota
 	chatView
+	topicsView
 )
 
 const (
@@ -31,7 +33,6 @@ const (
 
 var (
 	margStyle         = lipgloss.NewStyle().Margin(1, 2)
-	chatStyle         = lipgloss.NewStyle().Padding(1, 2)
 	inputStyle        = lipgloss.NewStyle().Background(lipgloss.Color("253")).Foreground(lipgloss.Color("232")).PaddingLeft(2).PaddingRight(2)
 	listSelectedStyle = lipgloss.NewStyle().Border(lipgloss.NormalBorder(), false, false, false, true).BorderForeground(lipgloss.Color("#b39ddb")).Foreground(lipgloss.Color("#b39ddb")).Padding(0, 0, 0, 1)
 	meStyle           = lipgloss.NewStyle().Foreground(lipgloss.Color("#b39ddb"))
@@ -43,21 +44,37 @@ var (
 var senders = make(map[int64]string)
 
 type errMsg error
-type chatListMsg []*tdlib.Chat
+type chatListMsg []list.Item
 type chatHistoryMsg []string
 type tdMessageMsg string
+type topicListMsg []*tdlib.ForumTopic
+type openChatMsg struct {
+	chatId   int64
+	threadId int64
+}
 type changeStateMsg struct {
 	newState viewState
 }
 
 type chatItem struct {
-	title string
-	id    int64
+	title      string
+	id         int64
+	haveTopics bool
+}
+
+type topicItem struct {
+	chatId   int64
+	threadId int64
+	title    string
 }
 
 func (c chatItem) Title() string       { return c.title }
 func (c chatItem) Description() string { return fmt.Sprintf("ID: %d", c.id) }
 func (c chatItem) FilterValue() string { return c.title }
+
+func (c topicItem) Title() string       { return c.title }
+func (c topicItem) Description() string { return fmt.Sprintf("ID: %d", c.chatId) }
+func (c topicItem) FilterValue() string { return c.title }
 
 type rootModel struct {
 	conn     *connection.Connection
@@ -65,17 +82,28 @@ type rootModel struct {
 	err      error
 	chatList list.Model
 	chat     chatModel
+	topics   topicsModel
 }
 
 type chatModel struct {
+	conn            *connection.Connection
 	viewport        viewport.Model
 	messages        []string
 	chatId          int64
-	conn            *connection.Connection
+	threadId        int64
 	input           string
 	err             errMsg
 	atTop           bool
 	chatLoadSize    int32
 	newChatLoadSize int32
 	init            bool
+	msgChan         chan tdMessageMsg
+	ctxForMsg       context.Context
+	cancelMsgChan   context.CancelFunc
+}
+
+type topicsModel struct {
+	conn             *connection.Connection
+	topicList        list.Model
+	superGroupChatId int64
 }

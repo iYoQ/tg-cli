@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"tg-cli/connection"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -34,6 +36,8 @@ func processMessages(msg *tdlib.Message, from string) string {
 		result = formatMessage(content.Emoji, from, msg.Date)
 	case *tdlib.MessageVideo, *tdlib.MessageAudio:
 		result = formatMessage("[media content]", from, msg.Date)
+	default:
+		result = formatMessage("[smh]", from, msg.Date)
 	}
 
 	return result
@@ -125,5 +129,29 @@ func checkCommand(msg string) string {
 		return "file"
 	} else {
 		return ""
+	}
+}
+
+func listenFromUpdateChannel(conn *connection.Connection, currentChatId int64, msgChannel chan<- tdMessageMsg, ctx context.Context) {
+	for {
+		select {
+		case msg := <-conn.UpdatesChannel:
+			if msg.ChatId != currentChatId {
+				continue
+			}
+			if msg.IsOutgoing && currentChatId != conn.GetMe().Id {
+				continue
+			}
+
+			from := getUserName(conn.Client, msg)
+			formatMsg := processMessages(msg, from)
+
+			readMessages(conn.Client, msg.ChatId, []int64{msg.Id})
+
+			msgChannel <- tdMessageMsg(formatMsg)
+
+		case <-ctx.Done():
+			return
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"tg-cli/connection"
@@ -9,11 +10,14 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
-func newChatModel(width int, height int, chatId int64, conn *connection.Connection) chatModel {
+func newChatModel(width int, height int, chatId int64, threadId int64, conn *connection.Connection) chatModel {
 	vp := viewport.New(width, height)
 	vp.SetContent("")
+	msgChan := make(chan tdMessageMsg, 100)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	return chatModel{
 		viewport:        vp,
@@ -23,11 +27,16 @@ func newChatModel(width int, height int, chatId int64, conn *connection.Connecti
 		chatLoadSize:    20,
 		newChatLoadSize: 20,
 		init:            true,
+		threadId:        threadId,
+		msgChan:         msgChan,
+		ctxForMsg:       ctx,
+		cancelMsgChan:   cancel,
 	}
 }
 
 func (m chatModel) Init() tea.Cmd {
-	return tea.Batch(m.openChatCmd(m.chatLoadSize), m.listenUpdatesCmd())
+	go listenFromUpdateChannel(m.conn, m.chatId, m.msgChan, m.ctxForMsg)
+	return tea.Batch(m.openChatCmd(m.chatLoadSize), m.listenUpdatesCmd(m.msgChan))
 }
 
 func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -35,6 +44,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		var message string
 		switch msg.Type {
 		case tea.KeyEnter:
 			switch checkCommand(m.input) {
@@ -43,39 +53,42 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, func() tea.Msg { return errMsg(err) }
 				}
-				go requests.SendPhoto(m.conn.Client, m.chatId, path, caption)
-				if m.chatId != m.conn.GetMe().Id {
-					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-					m.messages = append(m.messages, message)
-				}
+				go requests.SendPhoto(m.conn.Client, requests.Params{ChatId: m.chatId, ThreadId: m.threadId, FilePath: path, Msg: caption})
+				message = formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+
 			case "file":
 				path, caption, err := formatCommand(m.input, "file")
 				if err != nil {
 					return m, func() tea.Msg { return errMsg(err) }
 				}
-				go requests.SendFile(m.conn.Client, m.chatId, path, caption)
-				if m.chatId != m.conn.GetMe().Id {
-					message := formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-					m.messages = append(m.messages, message)
-				}
+				go requests.SendFile(m.conn.Client, requests.Params{ChatId: m.chatId, ThreadId: m.threadId, FilePath: path, Msg: caption})
+				message = formatMessage("[media content]", senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+
 			default:
-				go requests.SendText(m.conn.Client, m.chatId, m.input)
-				if m.chatId != m.conn.GetMe().Id {
-					message := formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
-					m.messages = append(m.messages, message)
-				}
+				requests.SendText(m.conn.Client, requests.Params{ChatId: m.chatId, ThreadId: m.threadId, Msg: m.input})
+				message = formatMessage(m.input, senders[m.conn.GetMe().Id], int32(time.Now().Unix()))
+			}
+			if m.chatId != m.conn.GetMe().Id {
+				m.messages = append(m.messages, message)
+				m.viewport.SetContent(m.renderMessages())
+			}
+			m.viewport.GotoBottom()
+			m.input = ""
+
+		case tea.KeyBackspace:
+			runes := []rune(m.input)
+			if len(runes) > 0 {
+				m.input = string(runes[:len(runes)-1])
 			}
 
-			m.input = ""
-		case tea.KeyBackspace:
-			if len(m.input) > 0 {
-				m.input = m.input[:len(m.input)-1]
-			}
 		case tea.KeyCtrlC, tea.KeyEsc:
 			closeChat(m.conn.Client, m.chatId)
+			m.cancelMsgChan()
 			return changeView(m, chatListView)
+
 		case tea.KeyRunes, tea.KeySpace:
 			m.input += msg.String()
+
 		case tea.KeyCtrlDown:
 			m.input += "\n"
 		}
@@ -88,7 +101,7 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.messages = append(m.messages, string(msg))
 		m.viewport.SetContent(m.renderMessages())
 		m.viewport.GotoBottom()
-		cmds = append(cmds, m.listenUpdatesCmd())
+		return m, m.listenUpdatesCmd(m.msgChan)
 
 	case chatHistoryMsg:
 		prevLineCount := m.viewport.TotalLineCount()
@@ -126,40 +139,26 @@ func (m chatModel) View() string {
 	}
 
 	wrappedInput := wrapMessage(m.input)
+	help := "[/f] send file, [/p] send photo, [Ctrl+C]/[Esc] return"
 
-	help := "[/f] - send file, [/f] send photo, [Ctrl+C]/[Esc] return"
-
-	newStr := fmt.Sprintf("%s\n%s\n%s", m.viewport.View(), inputStyle.Render("> "+wrappedInput), helpStyle.Render(help))
-
-	return chatStyle.Render(newStr)
+	return lipgloss.JoinVertical(lipgloss.Left,
+		m.viewport.View(),
+		"",
+		inputStyle.Render("> "+wrappedInput),
+		helpStyle.Render(help),
+	)
 }
 
-func (m chatModel) listenUpdatesCmd() tea.Cmd {
+func (m chatModel) listenUpdatesCmd(msgChan <-chan tdMessageMsg) tea.Cmd {
 	return func() tea.Msg {
-		for msg := range m.conn.UpdatesChannel {
-			if msg.ChatId == m.chatId {
-				from := getUserName(m.conn.Client, msg)
-				formatMsg := processMessages(msg, from)
-				updateMsg := tdMessageMsg(formatMsg)
-
-				messageIds := make([]int64, 1)
-				messageIds[0] = msg.Id
-
-				if err := readMessages(m.conn.Client, msg.ChatId, messageIds); err != nil {
-					return errMsg(err)
-				}
-
-				return updateMsg
-			}
-		}
-		return nil
+		return <-msgChan
 	}
 }
 
 func (m chatModel) openChatCmd(chatLoadSize int32) tea.Cmd {
 	chatLoadSize = max(m.chatLoadSize, chatLoadSize)
 	return func() tea.Msg {
-		history, err := getChatHistory(m.conn.Client, m.chatId, chatLoadSize)
+		history, err := getChatHistory(m.conn.Client, m.chatId, m.threadId, chatLoadSize)
 		if err != nil {
 			return errMsg(err)
 		}
