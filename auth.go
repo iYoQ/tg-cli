@@ -33,13 +33,11 @@ func auth(cfg Config, conn *connection.Connection) error {
 		NewVerbosityLevel: 1,
 	})
 	if err != nil {
-		log.Printf("SetLogVerbosityLevel error: %s", err)
 		return err
 	}
 
 	client, err := tdlib.NewClient(authorizer, tdlib.WithResultHandler(tdlib.NewCallbackResultHandler(conn.CreateCallbackHandler)))
 	if err != nil {
-		log.Printf("NewClient error: %s", err)
 		return err
 	}
 
@@ -51,7 +49,6 @@ func auth(cfg Config, conn *connection.Connection) error {
 		Name: "version",
 	})
 	if err != nil {
-		log.Printf("GetOption error: %s", err)
 		return err
 	}
 
@@ -59,7 +56,6 @@ func auth(cfg Config, conn *connection.Connection) error {
 		Name: "commit_hash",
 	})
 	if err != nil {
-		log.Printf("GetOption error: %s", err)
 		return err
 	}
 
@@ -71,7 +67,6 @@ func auth(cfg Config, conn *connection.Connection) error {
 
 	tdlibMe, err := client.GetMe(context.Background())
 	if err != nil {
-		log.Printf("GetMe error: %s", err)
 		return err
 	}
 
