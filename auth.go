@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
-	"log"
 	"path/filepath"
 	"tg-cli/connection"
 
+	"github.com/rs/zerolog"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func auth(cfg Config, conn *connection.Connection) error {
+func auth(cfg Config, conn *connection.Connection, ctx context.Context) error {
+	logger := zerolog.Ctx(ctx)
+
 	tdlibParameters := &tdlib.SetTdlibParametersRequest{
 		UseTestDc:           false,
 		DatabaseDirectory:   filepath.Join("./", "database"),
@@ -43,7 +45,7 @@ func auth(cfg Config, conn *connection.Connection) error {
 
 	conn.SetClient(client)
 
-	go conn.ShutDownListener()
+	go conn.ShutDownListener(ctx, cfg.verbosityLevel)
 
 	versionOption, err := client.GetOption(&tdlib.GetOptionRequest{
 		Name: "version",
@@ -59,11 +61,11 @@ func auth(cfg Config, conn *connection.Connection) error {
 		return err
 	}
 
-	if cfg.verbosityLevel == 1 {
-		log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
+	if cfg.verbosityLevel > 0 {
+		logger.Info().Str("TDLib version", versionOption.(*tdlib.OptionValueString).Value).Str("commit", commitOption.(*tdlib.OptionValueString).Value).Msg("")
 
 		if commitOption.(*tdlib.OptionValueString).Value != tdlib.TDLIB_VERSION {
-			log.Printf("TDLib verson supported by the library (%s) is not the same as TDLIB version (%s)", tdlib.TDLIB_VERSION, commitOption.(*tdlib.OptionValueString).Value)
+			logger.Warn().Str("TDLib supported version", tdlib.TDLIB_VERSION).Str("your version", commitOption.(*tdlib.OptionValueString).Value).Msg("")
 		}
 	}
 
@@ -74,8 +76,8 @@ func auth(cfg Config, conn *connection.Connection) error {
 
 	me := conn.SetMe(tdlibMe)
 
-	if cfg.verbosityLevel == 1 {
-		log.Printf("Me: %s %s", me.FirstName, me.LastName)
+	if cfg.verbosityLevel > 0 {
+		logger.Info().Str("FirstName", me.FirstName).Str("LastName", me.LastName).Msg("me")
 	}
 
 	return nil

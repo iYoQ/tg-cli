@@ -2,16 +2,18 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"tg-cli/connection"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/rs/zerolog"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
-func NewRootModel(conn *connection.Connection) rootModel {
+func NewRootModel(conn *connection.Connection, ctx context.Context) rootModel {
+	logger := zerolog.Ctx(ctx)
+
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.SelectedTitle = listSelectedStyle
 	delegate.Styles.SelectedDesc = listSelectedStyle
@@ -37,6 +39,7 @@ func NewRootModel(conn *connection.Connection) rootModel {
 		conn:     conn,
 		state:    chatListView,
 		chatList: chatList,
+		logger:   ZerologAdapter{logger: logger},
 	}
 }
 
@@ -128,7 +131,8 @@ func (m rootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m rootModel) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("Error: %v", m.err)
+		m.logger.Error().Err(m.err).Msg("")
+		return ""
 	}
 
 	switch m.state {
