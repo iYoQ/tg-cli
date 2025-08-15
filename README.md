@@ -3,7 +3,7 @@ Telegram client for interaction in cli
 
 ## start
 
-    download tg-cli zip
+    download tg-cli tar
     add to .env file your creds(or add ENV variables API_ID, API_HASH directly)
     run tg-cli
 
