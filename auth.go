@@ -30,7 +30,7 @@ func auth(cfg Config, conn *connection.Connection) error {
 	go tdlib.CliInteractor(authorizer)
 
 	_, err := tdlib.SetLogVerbosityLevel(&tdlib.SetLogVerbosityLevelRequest{
-		NewVerbosityLevel: 1,
+		NewVerbosityLevel: cfg.verbosityLevel,
 	})
 	if err != nil {
 		return err

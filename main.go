@@ -13,8 +13,9 @@ import (
 )
 
 type Config struct {
-	apiId   int32
-	apiHash string
+	apiId          int32
+	apiHash        string
+	verbosityLevel int32
 }
 
 type flags struct {
@@ -62,6 +63,7 @@ func loadParams() Config {
 	godotenv.Load()
 	apiIdRaw := os.Getenv("API_ID")
 	apiHash := os.Getenv("API_HASH")
+	devMode := os.Getenv("DEV_ENV")
 
 	if apiIdRaw == "" || apiHash == "" {
 		log.Fatalf("API_ID and API_HASH are required, use .env file, or ENV")
@@ -74,9 +76,15 @@ func loadParams() Config {
 
 	apiId := int32(apiId64)
 
+	verbosityLevel := int32(0)
+	if devMode == "true" {
+		verbosityLevel = 1
+	}
+
 	return Config{
-		apiId:   apiId,
-		apiHash: apiHash,
+		apiId:          apiId,
+		apiHash:        apiHash,
+		verbosityLevel: verbosityLevel,
 	}
 }
 
