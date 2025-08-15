@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"tg-cli/connection"
 	"time"
@@ -23,13 +22,13 @@ func processMessages(msg *tdlib.Message, from string) string {
 	case *tdlib.MessagePhoto:
 		var tmpText string
 		if content.Caption != nil {
-			tmpText = fmt.Sprintf("[media content] %s", content.Caption.Text)
+			tmpText = "[media content] " + content.Caption.Text
 		}
 		result = formatMessage(tmpText, from, msg.Date)
 	case *tdlib.MessageDocument:
 		var tmpText string
 		if content.Caption != nil {
-			tmpText = fmt.Sprintf("[media content] %s", content.Caption.Text)
+			tmpText = "[media content] " + content.Caption.Text
 		}
 		result = formatMessage(tmpText, from, msg.Date)
 	case *tdlib.MessageAnimatedEmoji:
@@ -67,7 +66,17 @@ func formatMessage(msg string, from string, unixDate int32) string {
 	dt := parseDate(unixDate)
 	msg = addIndenting(msg, dt)
 
-	return fmt.Sprintf("[%s] %s: %s", dt, from, msg)
+	var sb strings.Builder
+	sb.WriteString("[")
+	sb.WriteString(dt)
+	sb.WriteString("] ")
+	sb.WriteString(from)
+	sb.WriteString(": ")
+	sb.WriteString(msg)
+
+	result := sb.String()
+
+	return result
 }
 
 func formatCommand(msg string, cmdType string) (string, string, error) {

@@ -3,11 +3,12 @@ package connection
 import (
 	"context"
 	"errors"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -56,38 +57,44 @@ func (conn *Connection) CreateCallbackHandler(result tdlib.Type) {
 			if conn.UpdatesChannel != nil {
 				conn.UpdatesChannel <- update.Message
 			} else {
-				log.Println("channel don't setup, check connection.UpdateChannel")
+				log.Fatal().Msg("channel don't setup")
 			}
 		}
 
 	}()
 }
 
-func (conn *Connection) Close() {
+func (conn *Connection) Close(ctx context.Context, verbosityLevel int32) {
 	if conn.Client == nil {
 		return
 	}
 
-	log.Println("\nShutting down TDLib client...")
+	logger := zerolog.Ctx(ctx)
+
+	if verbosityLevel > 0 {
+		logger.Info().Msg("Shutting down TDLib client...")
+	}
 
 	ok, err := conn.Client.Close(context.Background())
 	if err != nil {
-		log.Printf("Error closing TDLib client: %v\n", err)
+		logger.Fatal().Err(err).Msg("Error closing TDLib client")
 		os.Exit(1)
 	}
 	if ok != nil {
-		log.Println("TDLib client closed")
+		if verbosityLevel > 0 {
+			logger.Info().Msg("TDLib client closed")
+		}
 		return
 	}
 
 	panic(errors.New("smh very bad happened"))
 }
 
-func (conn *Connection) ShutDownListener() {
+func (conn *Connection) ShutDownListener(ctx context.Context, verbosityLevel int32) {
 	ch := make(chan os.Signal, 2)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
 	<-ch
 
-	conn.Close()
+	conn.Close(ctx, verbosityLevel)
 	os.Exit(0)
 }

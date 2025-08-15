@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"tg-cli/connection"
 	"tg-cli/requests"
@@ -135,7 +134,8 @@ func (m chatModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m chatModel) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("Error: %v", m.err)
+		m.logger.Error().Err(m.err).Msg("")
+		return ""
 	}
 
 	wrappedInput := wrapMessage(m.input)

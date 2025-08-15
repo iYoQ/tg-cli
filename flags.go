@@ -29,12 +29,12 @@ func checkFlags(conn *connection.Connection, flags flags) (bool, error) {
 	}
 
 	if *flags.chatIdFlag == "" {
-		return true, errors.New("error: --chat is required when using --f or --p")
+		return true, errors.New("error: -chat is required when using -f or -p")
 	}
 
 	onlyOneProvided := (*flags.fileFlag == "") != (*flags.photoFlag == "")
 	if !onlyOneProvided {
-		return true, errors.New("error: exactly one of --f or --p must be provided, not both")
+		return true, errors.New("error: exactly one of -f or -p must be provided, not both")
 	}
 
 	chatId64, err := strconv.ParseInt(*flags.chatIdFlag, 10, 64)

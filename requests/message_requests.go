@@ -80,6 +80,5 @@ func sendMessage(client *tdlib.Client, messageRequest *tdlib.SendMessageRequest)
 	_, err := client.SendMessage(context.Background(), messageRequest)
 	if err != nil {
 		log.Printf("Failed to send message: %v", err)
-		return
 	}
 }

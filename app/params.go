@@ -2,12 +2,13 @@ package app
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"tg-cli/connection"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rs/zerolog"
 	tdlib "github.com/zelenin/go-tdlib/client"
 )
 
@@ -56,6 +57,22 @@ type changeStateMsg struct {
 	newState viewState
 }
 
+type Logger interface {
+	Debug() *zerolog.Event
+	Info() *zerolog.Event
+	Warn() *zerolog.Event
+	Error() *zerolog.Event
+}
+
+type ZerologAdapter struct {
+	logger *zerolog.Logger
+}
+
+func (z ZerologAdapter) Debug() *zerolog.Event { return z.logger.Debug() }
+func (z ZerologAdapter) Info() *zerolog.Event  { return z.logger.Info() }
+func (z ZerologAdapter) Warn() *zerolog.Event  { return z.logger.Warn() }
+func (z ZerologAdapter) Error() *zerolog.Event { return z.logger.Error() }
+
 type chatItem struct {
 	title      string
 	id         int64
@@ -69,11 +86,11 @@ type topicItem struct {
 }
 
 func (c chatItem) Title() string       { return c.title }
-func (c chatItem) Description() string { return fmt.Sprintf("ID: %d", c.id) }
+func (c chatItem) Description() string { return "ID:" + strconv.Itoa(int(c.id)) }
 func (c chatItem) FilterValue() string { return c.title }
 
 func (c topicItem) Title() string       { return c.title }
-func (c topicItem) Description() string { return fmt.Sprintf("ID: %d", c.chatId) }
+func (c topicItem) Description() string { return "ID:" + strconv.Itoa(int(c.chatId)) }
 func (c topicItem) FilterValue() string { return c.title }
 
 type rootModel struct {
@@ -83,6 +100,7 @@ type rootModel struct {
 	chatList list.Model
 	chat     chatModel
 	topics   topicsModel
+	logger   Logger
 }
 
 type chatModel struct {
@@ -100,10 +118,12 @@ type chatModel struct {
 	msgChan         chan tdMessageMsg
 	ctxForMsg       context.Context
 	cancelMsgChan   context.CancelFunc
+	logger          Logger
 }
 
 type topicsModel struct {
 	conn             *connection.Connection
 	topicList        list.Model
 	superGroupChatId int64
+	logger           Logger
 }
