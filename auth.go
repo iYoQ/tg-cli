@@ -59,10 +59,12 @@ func auth(cfg Config, conn *connection.Connection) error {
 		return err
 	}
 
-	log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
+	if cfg.verbosityLevel == 1 {
+		log.Printf("TDLib version: %s (commit: %s)", versionOption.(*tdlib.OptionValueString).Value, commitOption.(*tdlib.OptionValueString).Value)
 
-	if commitOption.(*tdlib.OptionValueString).Value != tdlib.TDLIB_VERSION {
-		log.Printf("TDLib verson supported by the library (%s) is not the same as TDLIB version (%s)", tdlib.TDLIB_VERSION, commitOption.(*tdlib.OptionValueString).Value)
+		if commitOption.(*tdlib.OptionValueString).Value != tdlib.TDLIB_VERSION {
+			log.Printf("TDLib verson supported by the library (%s) is not the same as TDLIB version (%s)", tdlib.TDLIB_VERSION, commitOption.(*tdlib.OptionValueString).Value)
+		}
 	}
 
 	tdlibMe, err := client.GetMe(context.Background())
@@ -72,7 +74,9 @@ func auth(cfg Config, conn *connection.Connection) error {
 
 	me := conn.SetMe(tdlibMe)
 
-	log.Printf("Me: %s %s", me.FirstName, me.LastName)
+	if cfg.verbosityLevel == 1 {
+		log.Printf("Me: %s %s", me.FirstName, me.LastName)
+	}
 
 	return nil
 }
