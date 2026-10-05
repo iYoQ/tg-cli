@@ -20,15 +20,15 @@ func processMessages(msg *tdlib.Message, from string) string {
 	case *tdlib.MessageText:
 		result = formatMessage(content.Text.Text, from, msg.Date)
 	case *tdlib.MessagePhoto:
-		var tmpText string
+		tmpText := "[media content]"
 		if content.Caption != nil {
-			tmpText = "[media content] " + content.Caption.Text
+			tmpText += " " + content.Caption.Text
 		}
 		result = formatMessage(tmpText, from, msg.Date)
 	case *tdlib.MessageDocument:
-		var tmpText string
+		tmpText := "[media content]"
 		if content.Caption != nil {
-			tmpText = "[media content] " + content.Caption.Text
+			tmpText += " " + content.Caption.Text
 		}
 		result = formatMessage(tmpText, from, msg.Date)
 	case *tdlib.MessageAnimatedEmoji:

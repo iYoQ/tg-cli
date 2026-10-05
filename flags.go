@@ -24,7 +24,7 @@ func loadFlags() flags {
 }
 
 func checkFlags(conn *connection.Connection, flags flags) (bool, error) {
-	if *flags.chatIdFlag == "" && (*flags.fileFlag == "" || *flags.photoFlag == "") && *flags.captionFlag == "" {
+	if *flags.chatIdFlag == "" && *flags.fileFlag == "" && *flags.photoFlag == "" && *flags.captionFlag == "" {
 		return false, nil
 	}
 
